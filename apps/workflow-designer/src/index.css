@@ -1,0 +1,43 @@
+:root {
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: var(--text-primary);
+  background: var(--background);
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --background: #08090b;
+  --sidebar: #111317;
+  --surface: #15171b;
+  --surface-hover: #21252b;
+  --surface-elevated: #262a30;
+
+  --text-primary: #e9edf0;
+  --text-secondary: #a8b0ba;
+  --text-muted: #737b86;
+
+  --accent: #e9edf0;
+  --accent-hover: #ffffff;
+  --border: #2c3036;
+
+  --success: #55b88a;
+  --warning: #d6a653;
+  --error: #e16c74;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 280px;
+  background: var(--background);
+}
+
+::selection {
+  color: var(--background);
+  background: var(--accent);
+}
