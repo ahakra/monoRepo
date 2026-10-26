@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS integration_connections (
+    id UUID PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    host VARCHAR(253) NOT NULL,
+    port INTEGER NOT NULL CHECK (port BETWEEN 1 AND 65535),
+    database_name VARCHAR(120) NOT NULL,
+    username VARCHAR(120) NOT NULL,
+    password TEXT NOT NULL,
+    ssl_mode VARCHAR(20) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

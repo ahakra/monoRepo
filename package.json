@@ -1,0 +1,12 @@
+{
+  "name": "camel-etl-tooling",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"apps/workflow-designer/src/**/*.{js,jsx,css}\" \"apps/workflow-designer/vite.config.js\" \"services/camel-integration/src/**/*.java\"",
+    "format:check": "prettier --check \"apps/workflow-designer/src/**/*.{js,jsx,css}\" \"apps/workflow-designer/vite.config.js\" \"services/camel-integration/src/**/*.java\""
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10",
+    "prettier-plugin-java": "^2.11.0"
+  }
+}
