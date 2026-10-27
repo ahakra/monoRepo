@@ -162,7 +162,7 @@ export default function NetworkScene({ paused }) {
         const b = nodes[j]
 
         const avgScale = (a.scale + b.scale) / 2
-        const depthAlpha = Math.max(0.02, Math.min(0.22, (avgScale - 0.72) * 0.24))
+        const depthAlpha = Math.max(0.08, Math.min(0.34, (avgScale - 0.72) * 0.24))
         const highlight = Math.max(a.attachment, b.attachment)
         const alpha = depthAlpha + highlight * 0.12
 

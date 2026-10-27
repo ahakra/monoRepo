@@ -59,11 +59,18 @@
   border-bottom: 1px solid var(--border);
   margin-bottom: 28px;
 }
-.config-tabs > span {
+.config-tabs > button {
   display: inline-block;
-  padding: 0 4px 16px;
-  border-bottom: 2px solid var(--mint);
+  padding: 12px 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   font-size: 0.85rem;
+}
+.config-tabs > button[aria-current] {
+  border-bottom-color: var(--mint);
+  color: var(--mint);
 }
 .config b {
   margin-left: 8px;
@@ -149,14 +156,19 @@
   gap: 25px;
   padding: 28px;
 }
-.config-fields label {
+.config-fields label,
+.field-editor label,
+.table-add-field label {
   display: flex;
   flex-direction: column;
   gap: 9px;
   font-size: 0.8rem;
 }
 .config-fields input,
-.config-fields select {
+.config-fields select,
+.field-editor input,
+.field-editor select,
+.table-add-field select {
   width: 100%;
   min-width: 0;
   background: #0b0d0f;
@@ -268,4 +280,215 @@
   width: 16px;
   height: 16px;
   accent-color: var(--mint);
+}
+.field-editor {
+  padding: 0 28px 28px;
+}
+.field-editor > p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0 0 20px;
+}
+.field-editor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 90px;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+.field-editor-row .config-badge {
+  align-self: center;
+  justify-self: start;
+}
+.field-editor input[readonly] {
+  color: var(--text-muted);
+}
+.field-editor > small {
+  margin-left: 14px;
+}
+.field-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.field-summary code {
+  font-size: 0.75rem;
+}
+.table-field-picker {
+  padding: 0 28px 28px;
+}
+.field-usage-help {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+.schema-review {
+  margin-top: 24px;
+}
+.schema-review-body {
+  padding: 24px 28px;
+}
+.schema-review-body > p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.schema-review-actions {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+.schema-change-list {
+  padding: 0;
+  list-style: none;
+}
+.schema-change-list li {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+.schema-change-list label,
+.schema-acknowledgment {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 0.85rem;
+}
+.schema-change-list input,
+.schema-acknowledgment input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--mint);
+}
+.schema-change-list small {
+  display: block;
+  margin-top: 6px;
+}
+.schema-change-list .schema-data-loss {
+  color: #f1b2bb;
+}
+.schema-change-list pre {
+  padding: 14px;
+  background: #0b0d0f;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 0.8rem;
+}
+.schema-acknowledgment {
+  padding: 18px;
+  border: 1px solid #74444b;
+  border-radius: 7px;
+  color: #f1b2bb;
+  line-height: 1.5;
+}
+.table-picker-header,
+.table-picker-header > div,
+.table-add-field,
+.table-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.table-picker-header {
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.table-picker-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.table-add-field {
+  align-items: flex-end;
+}
+.table-add-field label {
+  flex: 1;
+}
+.table-picker-empty,
+.table-field-picker > p {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  padding: 16px 0;
+}
+.table-selected-fields {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.table-selected-fields li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.table-selected-fields li:last-child {
+  border-bottom: 0;
+}
+.table-selected-fields code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+.saved-table {
+  border-bottom: 1px solid var(--border);
+}
+.saved-table:last-child {
+  border-bottom: 0;
+}
+.saved-table .config-row {
+  border-bottom: 0;
+}
+.table-sql {
+  padding: 0 26px 20px;
+  font-size: 0.8rem;
+}
+.table-sql summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.table-sql pre,
+.table-confirm-sql {
+  overflow: auto;
+  padding: 16px;
+  background: #0b0d0f;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+@media (max-width: 1050px) {
+  .saved-table .config-row {
+    flex-wrap: wrap;
+  }
+  .table-row-actions {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  .field-editor {
+    padding: 0 20px 20px;
+  }
+  .table-field-picker {
+    padding: 0 20px 20px;
+  }
+  .table-add-field {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .table-selected-fields li {
+    flex-wrap: wrap;
+  }
+  .field-editor-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .field-editor-row > button,
+  .field-editor-row > span {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }
