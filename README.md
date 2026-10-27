@@ -125,6 +125,40 @@ Open the URL printed by Vite and select **Configuration**. The backend listens o
 
 The backend reads the root `.env` when launched from the repository root or the service directory. Environment variables can override its settings, including `POSTGRES_JDBC_URL` for platform configuration storage.
 
+## Makefile shortcuts
+
+From the repository root, use `make help` to list the development shortcuts. These commands require Make and the same Java, Node.js, and Docker tools described above.
+
+```sh
+make frontend-install
+make docker
+```
+
+Then run `make backend` and `make frontend` in separate terminals. Both development servers run in the foreground; use Ctrl+C to stop them. Docker services run in the background.
+
+| Command | Action |
+| --- | --- |
+| `make frontend-install` | Install frontend dependencies with `npm ci` |
+| `make frontend` | Run the Vite frontend |
+| `make backend` | Run Spring Boot using the selected environment file |
+| `make docker` or `make docker-up` | Start PostgreSQL and pgAdmin |
+| `make docker-down` | Stop Docker services while preserving data volumes |
+| `make docker-logs` | Follow Docker service logs |
+| `make docker-ps` | Show Docker service status |
+
+Backend and Docker shortcuts use the root `.env` by default. Select another file with `ENV_FILE`, using a path relative to the repository root or an absolute path:
+
+```sh
+make docker ENV_FILE=.env.local
+make backend ENV_FILE=.env.local
+make docker-ps ENV_FILE=.env.local
+make docker-down ENV_FILE=.env.local
+```
+
+Use the same environment file for the backend and Docker services. The backend shortcut explicitly imports the chosen file as Spring properties, replacing its default `.env` import paths. Environment variables can still override properties from the file. Docker commands always pass the selected path through `--env-file`. Missing files produce an error before either command starts. Choosing another file does not create a separate Docker stack or reset existing volumes.
+
+`ENV_FILE` applies to backend and Docker shortcuts. The frontend uses Vite's own environment handling; the Makefile does not load database credentials into the frontend process.
+
 ## Validation
 
 Backend tests use an isolated H2 database for persistence and migration checks, and mocked JDBC connections for PostgreSQL table creation and schema-change behavior:
