@@ -75,6 +75,12 @@ Conditions support starts with, ends with, contains, equals, and length equals/g
 
 Java evaluates both sample tests and saved-rule application. When the condition matches, the transformed source replaces the destination value; otherwise the whole record stays unchanged. Missing, null, and non-string source values do not match. Saved rules protect their referenced Fields definition and field keys from incompatible edits. Workflow execution integration remains future work.
 
+### Conditional rules
+
+Open **Rules → Conditional** to create named rules with an optional description and a Fields definition. All field types are available. Compare a field against a typed value or a compatible field, and nest groups using **AND** (all children) or **OR** (any child). For example: `end_time > start_time AND (status = "completed" OR duration > 60)`.
+
+Operators include equality, inequality, greater/less comparisons, text matching, and null checks as supported by each field type. Java evaluates saved rules and sample records, returning `matched` without changing the record. Dates use ISO dates; datetimes require a timezone offset. Rules protect every field referenced on either side of a comparison. Workflow integration remains future work.
+
 ### Reviewed column changes
 
 For an existing table, **Review column changes** compares its actual PostgreSQL columns with the saved mapping and proposes **ADD**, **ALTER**, and **DROP COLUMN** statements.
@@ -188,7 +194,7 @@ For the shared Java and frontend formatting tools, run `npm ci` at the repositor
 
 ## Current scope and documentation
 
-Connections, Fields, Tables, and Normalize rules have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. Mappers, Workflows, and Executions are still under development.
+Connections, Fields, Tables, Normalize rules, and Conditional rules have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. Mappers, Workflows, and Executions are still under development.
 
 This implementation targets a trusted local workspace. The API has no authentication, and connection passwords are stored in plaintext in the configuration database. Keep `.env` out of version control and add authentication and secret storage before exposing the service to other users.
 

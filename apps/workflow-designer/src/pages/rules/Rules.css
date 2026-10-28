@@ -46,3 +46,78 @@
 .rules-page .config-row code {
   white-space: pre-wrap;
 }
+.conditional-builder {
+  padding: 0 28px 28px;
+}
+.config fieldset.conditional-group {
+  border: 1px solid #304239;
+  padding: 16px;
+  border-radius: 8px;
+  min-width: 0;
+  background: #111a17;
+}
+.conditional-group legend {
+  color: var(--mint);
+  padding: 0 8px;
+  font-size: 0.85rem;
+}
+.conditional-group-header,
+.conditional-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+.conditional-group-header label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+.conditional-group-header select {
+  min-width: 0;
+  max-width: 100%;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 6px;
+  font: inherit;
+}
+.conditional-children {
+  margin: 18px 0;
+}
+.conditional-junction {
+  display: block;
+  color: var(--mint);
+  font-size: 0.7rem;
+  margin: 12px;
+}
+.conditional-comparison {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #111316;
+}
+.conditional-comparison .config-fields {
+  padding: 16px;
+  gap: 16px;
+}
+.conditional-remove {
+  margin: 0 16px 16px;
+}
+.conditional-group-actions {
+  justify-content: flex-start;
+}
+.conditional-builder > .rules-help {
+  margin-top: 16px;
+}
+@media (max-width: 850px) {
+  .conditional-builder {
+    padding: 0 12px 20px;
+  }
+  .config fieldset.conditional-group {
+    padding: 10px;
+  }
+}

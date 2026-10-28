@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.*;
 
-@RestControllerAdvice(assignableTypes = NormalizeRuleController.class)
+@RestControllerAdvice(
+    assignableTypes = { NormalizeRuleController.class, ConditionalRuleController.class }
+)
 public class RulesExceptionHandler {
 
     @ExceptionHandler(InvalidRuleException.class)
@@ -15,7 +17,11 @@ public class RulesExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
-    @ExceptionHandler({ RuleNotFoundException.class, FieldsNotFoundException.class })
+    @ExceptionHandler({
+        RuleNotFoundException.class,
+        ConditionalRuleNotFoundException.class,
+        FieldsNotFoundException.class,
+    })
     public ProblemDetail missing(RuntimeException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }

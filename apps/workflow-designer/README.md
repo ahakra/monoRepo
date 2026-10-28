@@ -8,6 +8,7 @@ npm run dev
 ```
 
 `npm run build` creates the production bundle. `npm run lint` checks the source.
+`npm test` checks the Conditional builder’s value serialization and type helpers.
 
 Pages live in `src/pages/`; reusable UI such as the sidebar lives in
 `src/components/`. Each component keeps its logic and markup together in a
@@ -31,7 +32,10 @@ Connectors integrates with the Java backend to manage PostgreSQL connections.
 Schemas & Tables contains reusable Fields definitions and Tables, including
 field-usage protections, table creation, and reviewed ADD/ALTER/DROP column
 operations. Rules provides a Normalize editor with string/text field selectors,
-conditions, actions, and sample testing through the Java API. Other connector
+conditions, actions, and sample testing through the Java API. The Conditional
+editor includes all field types, typed values or compatible field comparisons,
+nested AND/OR groups, and sample record testing in Java. Rule type tabs preserve
+unsaved drafts when switching between Normalize and Conditional. Other connector
 types, Mappers, Workflows, and Executions remain under development.
 
 Vite proxies `/api` to the backend on port 8081. See the

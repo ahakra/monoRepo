@@ -215,3 +215,100 @@ destination value. Null, absent, or non-string sources never match. The Java
 evaluator copies its input and preserves unrelated fields and null values.
 The UI's sample test calls this same Java evaluator. Rules are not yet attached
 to the workflow designer or automatic Camel execution.
+
+## Conditional rules
+
+Migration V8 adds `etl_conditional_rules` and `etl_conditional_rule_fields`.
+Conditional rules are predicates: evaluation returns `{ "matched": true|false,
+"record": {...} }` and never modifies the record. Each rule has a name, optional
+description, Fields definition ID, and recursive expression. Groups combine
+children with `AND` or `OR`, and may contain comparisons and other groups.
+Limits are 8 levels (root counts as one) and 100 total nodes per rule.
+Empty groups are rejected.
+
+Endpoints:
+
+- `GET /api/rules/conditional`: list saved rules.
+- `POST /api/rules/conditional`: create a rule from a spec.
+- `PUT /api/rules/conditional/{id}`: update from a spec.
+- `DELETE /api/rules/conditional/{id}`: delete a rule.
+- `POST /api/rules/conditional/test`: test `{ "spec": {...}, "record": {...} }`.
+- `POST /api/rules/conditional/{id}/apply`: evaluate a saved rule; the request body is the record itself.
+
+Example spec:
+
+```json
+{
+  "name": "Completed after start",
+  "description": "Check chronological order and call status",
+  "fieldDefinitionId": "<saved-fields-uuid>",
+  "expression": {
+    "type": "GROUP",
+    "junction": "AND",
+    "children": [
+      {
+        "type": "COMPARISON",
+        "field": "end_time",
+        "operator": "GREATER_THAN",
+        "operandType": "FIELD",
+        "otherField": "start_time"
+      },
+      {
+        "type": "GROUP",
+        "junction": "OR",
+        "children": [
+          {
+            "type": "COMPARISON",
+            "field": "status",
+            "operator": "EQUALS",
+            "operandType": "VALUE",
+            "value": "completed"
+          },
+          {
+            "type": "COMPARISON",
+            "field": "duration_seconds",
+            "operator": "GREATER_THAN",
+            "operandType": "VALUE",
+            "value": "60"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+All Fields types are selectable. `EQUALS`, `NOT_EQUALS`, `IS_NULL`, and
+`IS_NOT_NULL` support every type. Ordered comparisons (`GREATER_THAN`,
+`GREATER_OR_EQUAL`, `LESS_THAN`, `LESS_OR_EQUAL`) support numeric, string/text,
+date, and datetime fields. `STARTS_WITH`, `ENDS_WITH`, and `CONTAINS` require
+string/text fields. A null check omits `operandType`, `value`, and `otherField`.
+
+Field operands must have the same type, except that all numeric types may
+compare with each other and string/text are compatible. Numeric values use
+`BigDecimal`, with integer/long range checks. Numeric literals may be JSON
+numbers or numeric strings; use strings for exact high-precision decimals.
+Dates are strict ISO dates (`2026-10-28`); datetimes require an offset or Z
+(`2026-10-28T12:00:00Z`) and are compared as instants. Booleans accept true/false
+or their lowercase text forms. UUID comparisons validate and normalize UUIDs.
+JSON supports structural equality, including numeric equivalence. Text is case
+sensitive and ordered by Java string comparison, without locale collation.
+
+Missing/null values only match the explicit null operators. All other
+comparisons, including `NOT_EQUALS`, return false when either operand is
+missing/null or cannot be converted to the declared type. Bad configured
+literals/operators/field selections return HTTP 400, while invalid runtime
+data simply does not match. A malformed child is rejected even when another
+child would short circuit evaluation.
+
+Saving validates the whole tree and persists a snapshot of all referenced
+field types, including right-hand field operands. Fields definitions are locked
+through validation and persistence. Referenced definitions cannot be deleted,
+and referenced keys cannot be removed or change type until the Conditional
+rule releases them. Unreferenced fields remain editable. The field editor
+shows these rule references using the existing `usedBy` response structure.
+
+Tests cover nested logic, both operand kinds, dates/timezones, numeric precision,
+all field types, null handling, invalid configuration, persistence, API errors,
+and field-usage protection. Conditional rules are not yet connected to automatic
+workflow/Camel execution.
