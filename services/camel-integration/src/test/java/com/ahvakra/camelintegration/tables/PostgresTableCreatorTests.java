@@ -26,7 +26,9 @@ class PostgresTableCreatorTests {
         "Target",
         "postgres",
         Map.of("database", "cdr"),
-        "secret"
+        "secret",
+        Instant.now(),
+        Instant.now()
     );
 
     private TableDefinition definition(Map<String, String> columns) {

@@ -1,6 +1,7 @@
 package com.ahvakra.camelintegration.connections.application;
 
 import com.ahvakra.camelintegration.connections.domain.*;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,14 +27,14 @@ public class ConnectionService {
     }
 
     public UUID create(ConnectionCommand command) {
-        var connection = prepare(UUID.randomUUID(), command, "");
+        var connection = prepare(UUID.randomUUID(), command, "", Instant.now());
         store.save(connection);
         return connection.id();
     }
 
     public void update(UUID id, ConnectionCommand command) {
         var existing = find(id);
-        store.save(prepare(id, command, existing.password()));
+        store.save(prepare(id, command, existing.password(), existing.createdAt()));
     }
 
     public void delete(UUID id) {
@@ -42,7 +43,7 @@ public class ConnectionService {
     }
 
     public ConnectionTestResult test(UUID id, ConnectionCommand command) {
-        var connection = prepare(id, command, id == null ? "" : find(id).password());
+        var connection = prepare(id, command, id == null ? "" : find(id).password(), null);
         return handler(connection.type()).test(connection);
     }
 
@@ -57,7 +58,12 @@ public class ConnectionService {
         return handlers.get(type);
     }
 
-    private ConnectionDefinition prepare(UUID id, ConnectionCommand command, String savedPassword) {
+    private ConnectionDefinition prepare(
+        UUID id,
+        ConnectionCommand command,
+        String savedPassword,
+        Instant createdAt
+    ) {
         if (
             command.name() == null || command.name().isBlank() || command.name().length() > 120
         ) throw new InvalidConnectionException("Enter a name of up to 120 characters.");
@@ -74,7 +80,9 @@ public class ConnectionService {
             command.name().trim(),
             command.type(),
             settings,
-            password
+            password,
+            createdAt,
+            Instant.now()
         );
     }
 }

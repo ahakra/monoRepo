@@ -1,3 +1,10 @@
+import { useItemFilters } from '../../components/items/useItemFilters.js'
+import {
+  ItemFilters,
+  ItemTimestamps,
+  NoMatchingItems,
+} from '../../components/items/ItemFilters.jsx'
+import { fieldFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { fieldsApi as api } from './fieldsApi.js'
 
@@ -22,6 +29,8 @@ export default function Fields({ active }) {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null)
   const [deleting, setDeleting] = useState(null)
+
+  const filtered = useItemFilters(items, fieldFilters)
 
   useEffect(() => {
     if (!active) return
@@ -281,6 +290,7 @@ export default function Fields({ active }) {
               Refresh
             </button>
           </header>
+          <ItemFilters filter={filtered} label="fields" disabled={loading} />
           {loading ? (
             <div className="config-empty">Loading fields…</div>
           ) : items.length === 0 ? (
@@ -296,8 +306,10 @@ export default function Fields({ active }) {
                 + Add fields
               </button>
             </div>
+          ) : !filtered.items.length ? (
+            <NoMatchingItems filter={filtered} />
           ) : (
-            items.map((item) => (
+            filtered.items.map((item) => (
               <article className="config-row" key={item.id}>
                 <div className="database-icon" aria-hidden="true">
                   {'{ }'}
@@ -313,12 +325,7 @@ export default function Fields({ active }) {
                       </code>
                     ))}
                   </p>
-                  <p>
-                    Updated{' '}
-                    <time dateTime={item.updatedAt}>
-                      {new Date(item.updatedAt).toLocaleString()}
-                    </time>
-                  </p>
+                  <ItemTimestamps item={item} />
                   {item.usedBy?.length > 0 && (
                     <p>Used by: {item.usedBy.map((reference) => reference.tableName).join(', ')}</p>
                   )}

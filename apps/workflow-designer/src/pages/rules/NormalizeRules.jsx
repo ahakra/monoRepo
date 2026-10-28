@@ -1,3 +1,10 @@
+import { useItemFilters } from '../../components/items/useItemFilters.js'
+import {
+  ItemFilters,
+  ItemTimestamps,
+  NoMatchingItems,
+} from '../../components/items/ItemFilters.jsx'
+import { normalizeFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { fieldsApi } from '../configuration/fieldsApi.js'
 import { rulesApi } from './rulesApi.js'
@@ -42,6 +49,8 @@ export default function NormalizeRules() {
   const [deleting, setDeleting] = useState(null)
   const [sample, setSample] = useState('')
   const [result, setResult] = useState(null)
+
+  const filtered = useItemFilters(items, normalizeFilters(definitions))
 
   useEffect(() => {
     let active = true
@@ -426,6 +435,7 @@ export default function NormalizeRules() {
               Refresh
             </button>
           </header>
+          <ItemFilters filter={filtered} label="Normalize rules" disabled={loading} />
           {loading ? (
             <div className="config-empty">Loading rules…</div>
           ) : loadError ? (
@@ -443,12 +453,15 @@ export default function NormalizeRules() {
                 + New Normalize rule
               </button>
             </div>
+          ) : !filtered.items.length ? (
+            <NoMatchingItems filter={filtered} />
           ) : (
-            items.map((item) => (
+            filtered.items.map((item) => (
               <article className="config-row" key={item.id}>
                 <span className="config-badge">Normalize</span>
                 <div className="config-row-info">
                   <h3>{item.spec.name}</h3>
+                  <ItemTimestamps item={item} />
                   {item.spec.description && <p>{item.spec.description}</p>}
                   <p>
                     {definitions.find((d) => d.id === item.spec.fieldDefinitionId)?.name} ·{' '}

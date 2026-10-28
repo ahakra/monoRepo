@@ -40,10 +40,15 @@ class ConnectionMigrationTests {
             var connection = DriverManager.getConnection(url, "sa", "");
             var statement = connection.createStatement()
         ) {
-            try (var rows = statement.executeQuery("SELECT type,password FROM etl_connections")) {
+            try (
+                var rows = statement.executeQuery(
+                    "SELECT type,password,created_at FROM etl_connections"
+                )
+            ) {
                 assertTrue(rows.next());
                 assertEquals("postgres", rows.getString(1));
                 assertEquals("secret", rows.getString(2));
+                assertNull(rows.getObject(3));
             }
             try (
                 var rows = statement.executeQuery(

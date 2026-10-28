@@ -1,3 +1,10 @@
+import { useItemFilters } from '../../components/items/useItemFilters.js'
+import {
+  ItemFilters,
+  ItemTimestamps,
+  NoMatchingItems,
+} from '../../components/items/ItemFilters.jsx'
+import { mapperFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { fieldsApi } from '../configuration/fieldsApi.js'
 import { mappersApi as api } from './mappersApi.js'
@@ -20,6 +27,8 @@ export default function Mappers() {
   const [notice, setNotice] = useState(null)
   const [busy, setBusy] = useState('')
   const [deleting, setDeleting] = useState(null)
+
+  const filtered = useItemFilters(items, mapperFilters(definitions))
 
   useEffect(() => {
     let active = true
@@ -332,6 +341,7 @@ export default function Mappers() {
               Refresh
             </button>
           </header>
+          <ItemFilters filter={filtered} label="mappers" disabled={loading} />
           {loading ? (
             <div className="config-empty">Loading mappers…</div>
           ) : loadError ? (
@@ -348,11 +358,14 @@ export default function Mappers() {
                 + New mapper
               </button>
             </div>
+          ) : !filtered.items.length ? (
+            <NoMatchingItems filter={filtered} />
           ) : (
-            items.map((item) => (
+            filtered.items.map((item) => (
               <article className="config-row" key={item.id}>
                 <div className="config-row-info">
                   <h3>{item.name}</h3>
+                  <ItemTimestamps item={item} />
                   {item.description && <p>{item.description}</p>}
                   <p>
                     Directory: <code>{item.directory}</code> · File:{' '}

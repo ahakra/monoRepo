@@ -20,6 +20,9 @@ class ConnectionControllerTests {
     @Autowired
     ConnectionStore store;
 
+    @Autowired
+    jakarta.persistence.EntityManager entities;
+
     private ConnectionRequest input(String host, String password) {
         return new ConnectionRequest(
             "Analytics",
@@ -45,6 +48,8 @@ class ConnectionControllerTests {
     @Test
     void savesUpdatesAndDeletesWithoutReturningCredentials() {
         var id = controller.create(input("localhost", "secret")).get("id");
+        entities.flush();
+        entities.clear();
         var saved = controller
             .list()
             .stream()
@@ -52,9 +57,16 @@ class ConnectionControllerTests {
             .findFirst()
             .orElseThrow();
         assertTrue(saved.hasPassword());
+        assertNotNull(saved.createdAt());
+        assertNotNull(saved.updatedAt());
         assertEquals("true", saved.settings().get("createDatabaseIfNotExists"));
         assertFalse(saved.toString().contains("secret"));
         controller.update(id, input("database", ""));
+        entities.flush();
+        entities.clear();
+        var updated = store.findById(id).orElseThrow();
+        assertEquals(saved.createdAt(), updated.createdAt());
+        assertFalse(updated.updatedAt().isBefore(saved.updatedAt()));
         assertEquals("secret", store.findById(id).orElseThrow().password());
         assertEquals("database", store.findById(id).orElseThrow().settings().get("host"));
         controller.update(id, input("database", "replacement"));
@@ -65,6 +77,23 @@ class ConnectionControllerTests {
             controller.update(id, input("localhost", ""))
         );
         assertThrows(ConnectionNotFoundException.class, () -> controller.delete(id));
+    }
+
+    @Test
+    void keepsUnknownLegacyCreationTimesUnknownAfterEditing() {
+        var id = controller.create(input("localhost", "secret")).get("id");
+        entities.flush();
+        entities
+            .createNativeQuery("UPDATE etl_connections SET created_at = NULL WHERE id = :id")
+            .setParameter("id", id)
+            .executeUpdate();
+        entities.clear();
+        assertNull(store.findById(id).orElseThrow().createdAt());
+        controller.update(id, input("database", ""));
+        entities.flush();
+        entities.clear();
+        assertNull(store.findById(id).orElseThrow().createdAt());
+        assertNotNull(store.findById(id).orElseThrow().updatedAt());
     }
 
     @Test

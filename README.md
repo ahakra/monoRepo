@@ -105,6 +105,14 @@ For an existing table, **Review column changes** compares its actual PostgreSQL 
 
 To change a used field, first remove it from **every** affected table mapping and save. Then edit the field, add it back to the mapping, save, and review the resulting database changes. To drop a column, remove it from the mapping, save, and select its DROP operation in the review. Renaming a field proposes separate ADD and DROP operations and does not copy existing values to the new column.
 
+## Searching saved items
+
+Connectors, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers show creation/update timestamps and provide a search/filter toolbar. Search all supported details or choose a specific field, such as name or description where available. Filters combine with search, and include relevant types, creation-date ranges, and sorting by name, creation, or update time. Counts show matching versus total items; Clear filters restores the full list.
+
+Date ranges use the browser's local calendar and include the entire end day. Connector creation time is now recorded for new records. Legacy connectors keep an unknown creation time because their original creation dates were not stored; they remain visible without date filters and are excluded from creation-date ranges. Existing entity timestamps are preserved on edits.
+
+Filtering runs locally over the records already returned by each list API. Workflow and Executions pages have no saved items yet.
+
 ## Repository layout
 
 | Path | Purpose |

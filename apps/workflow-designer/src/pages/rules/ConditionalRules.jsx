@@ -1,3 +1,10 @@
+import { useItemFilters } from '../../components/items/useItemFilters.js'
+import {
+  ItemFilters,
+  ItemTimestamps,
+  NoMatchingItems,
+} from '../../components/items/ItemFilters.jsx'
+import { conditionalFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { fieldsApi } from '../configuration/fieldsApi.js'
 import { conditionalApi as api } from './conditionalApi.js'
@@ -15,6 +22,8 @@ export default function ConditionalRules() {
   const [deleting, setDeleting] = useState(null)
   const [sample, setSample] = useState('{}')
   const [result, setResult] = useState(null)
+
+  const filtered = useItemFilters(items, conditionalFilters(definitions))
 
   useEffect(() => {
     let active = true
@@ -299,6 +308,7 @@ export default function ConditionalRules() {
               Refresh
             </button>
           </header>
+          <ItemFilters filter={filtered} label="Conditional rules" disabled={loading} />
           {loading ? (
             <div className="config-empty">Loading Conditional rules…</div>
           ) : loadError ? (
@@ -313,12 +323,15 @@ export default function ConditionalRules() {
                 + New Conditional rule
               </button>
             </div>
+          ) : !filtered.items.length ? (
+            <NoMatchingItems filter={filtered} />
           ) : (
-            items.map((item) => (
+            filtered.items.map((item) => (
               <article className="config-row" key={item.id}>
                 <span className="config-badge">Conditional</span>
                 <div className="config-row-info">
                   <h3>{item.spec.name}</h3>
+                  <ItemTimestamps item={item} />
                   {item.spec.description && <p>{item.spec.description}</p>}
                   <p>
                     {

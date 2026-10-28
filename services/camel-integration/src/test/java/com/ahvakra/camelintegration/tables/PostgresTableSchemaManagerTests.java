@@ -37,7 +37,9 @@ class PostgresTableSchemaManagerTests {
         "CDR",
         "postgres",
         Map.of("database", "cdr"),
-        "secret"
+        "secret",
+        Instant.now(),
+        Instant.now()
     );
     private final TableDefinition definition = new TableDefinition(
         UUID.randomUUID(),

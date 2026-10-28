@@ -1,3 +1,10 @@
+import { useItemFilters } from '../../components/items/useItemFilters.js'
+import {
+  ItemFilters,
+  ItemTimestamps,
+  NoMatchingItems,
+} from '../../components/items/ItemFilters.jsx'
+import { transformerFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { fieldsApi } from '../configuration/fieldsApi.js'
 import { transformersApi as api } from './transformersApi.js'
@@ -13,6 +20,8 @@ export default function Transformers() {
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState(null)
   const [deleting, setDeleting] = useState(null)
+
+  const filtered = useItemFilters(items, transformerFilters(definitions))
 
   useEffect(() => {
     let active = true
@@ -240,6 +249,7 @@ export default function Transformers() {
               Refresh
             </button>
           </header>
+          <ItemFilters filter={filtered} label="transformers" disabled={loading} />
           {loading ? (
             <div className="config-empty">Loading transformers…</div>
           ) : loadError ? (
@@ -254,11 +264,14 @@ export default function Transformers() {
                 + New transformer
               </button>
             </div>
+          ) : !filtered.items.length ? (
+            <NoMatchingItems filter={filtered} />
           ) : (
-            items.map((item) => (
+            filtered.items.map((item) => (
               <article className="config-row" key={item.id}>
                 <div className="config-row-info">
                   <h3>{item.name}</h3>
+                  <ItemTimestamps item={item} />
                   {item.description && <p>{item.description}</p>}
                   <p>
                     Directory: <code>{item.directory || 'Not configured'}</code> · File:{' '}

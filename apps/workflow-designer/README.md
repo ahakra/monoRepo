@@ -8,7 +8,7 @@ npm run dev
 ```
 
 `npm run build` creates the production bundle. `npm run lint` checks the source.
-`npm test` checks Conditional builder serialization/type helpers mapper output-name validation, and transformer port serialization/validation.
+`npm test` checks Conditional builder serialization/type helpers mapper output-name validation, and transformer port serialization/validation, and saved-item search/date/type filtering.
 
 Pages live in `src/pages/`; reusable UI such as the sidebar lives in
 `src/components/`. Each component keeps its logic and markup together in a
@@ -49,3 +49,11 @@ Vite proxies `/api` to the backend on port 8081. See the
 [repository overview](../../README.md) for local setup and the
 [backend guide](../../services/camel-integration/README.md) for API details and
 the field/table editing workflow.
+
+Saved-item lists share `src/components/items/` controls for scoped text search,
+page-specific type facets, creation date ranges, sorting, match counts, and clear
+filters. Controls keep their state during editing and tab switches. Each row
+shows creation and update times in the browser’s timezone. Date range end dates
+are inclusive. Unknown legacy connector creation dates sort last and do not
+match creation-date filters. Searches use explicit public-field selectors;
+connector secrets are excluded. Filtering is local to loaded list results.

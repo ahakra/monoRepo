@@ -23,6 +23,9 @@ public class ConnectionEntity {
     @Column(nullable = false, columnDefinition = "text")
     private String password;
 
+    @Column(name = "created_at")
+    private Instant createdAt;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
@@ -44,11 +47,12 @@ public class ConnectionEntity {
         entity.type = connection.type();
         entity.password = connection.password();
         entity.settings = new HashMap<>(connection.settings());
-        entity.updatedAt = Instant.now();
+        entity.createdAt = connection.createdAt();
+        entity.updatedAt = connection.updatedAt();
         return entity;
     }
 
     public ConnectionDefinition toDomain() {
-        return new ConnectionDefinition(id, name, type, settings, password);
+        return new ConnectionDefinition(id, name, type, settings, password, createdAt, updatedAt);
     }
 }

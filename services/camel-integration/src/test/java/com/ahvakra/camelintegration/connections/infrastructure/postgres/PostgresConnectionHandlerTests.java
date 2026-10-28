@@ -35,7 +35,9 @@ class PostgresConnectionHandlerTests {
                 "createDatabaseIfNotExists",
                 Boolean.toString(create)
             ),
-            "secret"
+            "secret",
+            java.time.Instant.now(),
+            java.time.Instant.now()
         );
     }
 

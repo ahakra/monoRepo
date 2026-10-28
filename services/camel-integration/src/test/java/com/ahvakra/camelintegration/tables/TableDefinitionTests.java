@@ -195,7 +195,17 @@ class TableDefinitionTests {
             controller.create(request(connection, UUID.randomUUID(), List.of("id")))
         );
         var unsupported = UUID.randomUUID();
-        connectionStore.save(new ConnectionDefinition(unsupported, "HTTP", "http", Map.of(), ""));
+        connectionStore.save(
+            new ConnectionDefinition(
+                unsupported,
+                "HTTP",
+                "http",
+                Map.of(),
+                "",
+                java.time.Instant.now(),
+                java.time.Instant.now()
+            )
+        );
         connectionIds.add(unsupported);
         assertThrows(InvalidTableException.class, () ->
             controller.create(request(unsupported, dictionary, List.of("id")))
@@ -272,7 +282,15 @@ class TableDefinitionTests {
             status().isBadRequest()
         );
         connectionStore.save(
-            new ConnectionDefinition(connection, "Changed type", "http", Map.of(), "")
+            new ConnectionDefinition(
+                connection,
+                "Changed type",
+                "http",
+                Map.of(),
+                "",
+                java.time.Instant.now(),
+                java.time.Instant.now()
+            )
         );
         mvc.perform(post("/api/tables/" + saved.id() + "/create")).andExpect(
             status().isBadRequest()

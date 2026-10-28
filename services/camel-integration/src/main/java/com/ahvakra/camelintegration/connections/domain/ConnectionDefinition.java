@@ -1,5 +1,6 @@
 package com.ahvakra.camelintegration.connections.domain;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -8,7 +9,9 @@ public record ConnectionDefinition(
     String name,
     String type,
     Map<String, String> settings,
-    String password
+    String password,
+    Instant createdAt,
+    Instant updatedAt
 ) {
     public ConnectionDefinition {
         settings = Map.copyOf(settings);

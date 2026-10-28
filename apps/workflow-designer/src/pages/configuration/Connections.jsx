@@ -1,3 +1,10 @@
+import { useItemFilters } from '../../components/items/useItemFilters.js'
+import {
+  ItemFilters,
+  ItemTimestamps,
+  NoMatchingItems,
+} from '../../components/items/ItemFilters.jsx'
+import { connectionFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { connectionApi as api } from './connectionApi.js'
 import PostgresFields from './PostgresFields.jsx'
@@ -29,6 +36,8 @@ export default function Connections() {
       setLoading(false)
     }
   }
+  const filtered = useItemFilters(items, connectionFilters)
+
   useEffect(() => {
     let active = true
     api()
@@ -184,6 +193,7 @@ export default function Connections() {
               Refresh
             </button>
           </header>
+          <ItemFilters filter={filtered} label="connections" disabled={loading} />
           {loading ? (
             <div className="config-empty">Loading connections…</div>
           ) : items.length === 0 ? (
@@ -197,14 +207,17 @@ export default function Connections() {
                 + Add PostgreSQL connection
               </button>
             </div>
+          ) : !filtered.items.length ? (
+            <NoMatchingItems filter={filtered} />
           ) : (
-            items.map((item) => (
+            filtered.items.map((item) => (
               <article className="config-row" key={item.id}>
                 <div className="database-icon" aria-hidden="true">
                   ▤
                 </div>
                 <div className="config-row-info">
                   <h3>{item.name}</h3>
+                  <ItemTimestamps item={item} />
                   <p>
                     {item.host}:{item.port} / {item.database}
                   </p>

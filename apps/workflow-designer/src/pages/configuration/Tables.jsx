@@ -1,3 +1,10 @@
+import { useItemFilters } from '../../components/items/useItemFilters.js'
+import {
+  ItemFilters,
+  ItemTimestamps,
+  NoMatchingItems,
+} from '../../components/items/ItemFilters.jsx'
+import { tableFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { connectionApi } from './connectionApi.js'
 import { fieldsApi } from './fieldsApi.js'
@@ -23,6 +30,8 @@ export default function Tables({ active }) {
   const [notice, setNotice] = useState(null)
   const [confirmation, setConfirmation] = useState(null)
   const [reviewing, setReviewing] = useState(null)
+
+  const filtered = useItemFilters(data.tables, tableFilters(data.fields, data.connections))
 
   useEffect(() => {
     if (!active) return
@@ -397,6 +406,7 @@ export default function Tables({ active }) {
               Refresh
             </button>
           </header>
+          <ItemFilters filter={filtered} label="tables" disabled={loading} />
           {loading ? (
             <div className="config-empty">Loading tables…</div>
           ) : loadError ? (
@@ -414,8 +424,10 @@ export default function Tables({ active }) {
                 + Add table
               </button>
             </div>
+          ) : !filtered.items.length ? (
+            <NoMatchingItems filter={filtered} />
           ) : (
-            data.tables.map((item) => (
+            filtered.items.map((item) => (
               <article className="saved-table" key={item.id}>
                 <div className="config-row">
                   <div className="database-icon" aria-hidden="true">
@@ -432,6 +444,7 @@ export default function Tables({ active }) {
                       · {connectionName(item.connectionId)}
                     </p>
                     <p>Fields: {fieldsName(item.fieldDefinitionId)}</p>
+                    <ItemTimestamps item={item} />
                   </div>
                   <div className="table-row-actions">
                     <button

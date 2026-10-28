@@ -434,3 +434,20 @@ and no control characters. Both components are preserved exactly; spaces in
 file/directory names are allowed. Existing transformer rows receive empty values
 and remain visible; configure their WASM location when editing them. File
 existence checks and module execution remain unimplemented.
+
+## Saved-item timestamps and search
+
+Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers
+already persist and return `createdAt` and `updatedAt`. Migration V12 adds
+nullable `created_at` to `etl_connections`; Connector list responses now also
+return both timestamps. New connector saves assign creation/update instants,
+and updates preserve creation time while advancing update time. Legacy
+connectors retain null creation times, including after editing, because the
+original creation time cannot be recovered from the old update timestamp.
+Migration and API tests cover this behavior. Password handling is unchanged.
+
+The frontend provides search, relevant type filters, local creation-date ranges,
+and sorting over each existing list endpoint’s results. No server-side search or
+pagination parameters are introduced. Only documented public fields are searched;
+connections have no description field, so their search targets name, connector
+type, host, database, and username. Dates display in the browser’s timezone.
