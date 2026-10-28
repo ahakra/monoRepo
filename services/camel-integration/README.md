@@ -312,3 +312,125 @@ Tests cover nested logic, both operand kinds, dates/timezones, numeric precision
 all field types, null handling, invalid configuration, persistence, API errors,
 and field-usage protection. Conditional rules are not yet connected to automatic
 workflow/Camel execution.
+
+## Mappers
+
+Migration V9 adds `etl_mappers` and its ordered `etl_mapper_outputs` collection.
+Use **Dynamic → Mapper** to configure a name, optional description, WASM directory,
+separate WASM filename, and 1–100 typed output lists. This stores configuration
+only: it does not read or execute the module and does not check file existence.
+
+Endpoints:
+
+- `GET /api/mappers`: list mapper configurations and saved output schemas.
+- `POST /api/mappers`: create a mapper.
+- `PUT /api/mappers/{id}`: edit a mapper, replacing its ordered output list configuration.
+- `DELETE /api/mappers/{id}`: delete a mapper and its output configurations, leaving files and Fields definitions intact.
+
+Create/update request:
+
+```json
+{
+  "name": "CDR parser",
+  "description": "Parse records into calls and customers",
+  "directory": "/opt/etl/mappers",
+  "wasmFileName": "cdr_parser.wasm",
+  "outputs": [
+    {"name": "CallRecords", "fieldDefinitionId": "<calls-fields-uuid>"},
+    {"name": "Customers", "fieldDefinitionId": "<customers-fields-uuid>"}
+  ]
+}
+```
+
+Mapper names allow up to 120 characters; descriptions allow 2000. The directory
+allows up to 2048 characters. The filename allows 255 characters, requires a
+`.wasm` extension, and cannot contain directory separators or control characters.
+Both location components are preserved exactly, and directories may contain spaces.
+
+Output list names allow up to 120 characters, must be unique within the mapper,
+and cannot contain spaces, whitespace, or control characters. Names are case
+sensitive and are never trimmed, lowercased, or otherwise normalized: configure
+the exact names the module will emit. There is no runtime module output check yet.
+Different outputs may use the same Fields definition. Responses include generated
+`id`, `createdAt`, `updatedAt`, and a `fields` map of keys/types for each output.
+The client chooses a Fields definition as the entire list item type; it does not
+provide arbitrary field snapshots.
+
+All selected Fields definitions are locked in sorted UUID order through schema
+validation and persistence. Each output stores its field type snapshot. Referenced
+Fields definitions cannot be deleted, and referenced field keys/types cannot be
+removed or changed until mapper outputs release them. Fields references appear
+in the existing `usedBy` structure, labeled with the mapper and output name.
+New keys may be added to Fields; existing snapshots remain stable until the mapper
+is saved again. Deleting or changing the output releases its prior definition.
+
+Tests cover multi-output persistence, exact names, order and edit replacement,
+shared Fields types, validation/API errors, schema protections, and deletion.
+
+## Dynamic: Transformers
+
+The Dynamic page groups Mapper and Transformer configuration; existing
+`#mappers` links still open Dynamic. Mapper API paths and saved data are unchanged.
+
+Migration V10 adds `etl_transformers`, `etl_transformer_inputs`, and
+`etl_transformer_outputs`. A transformer has a name, optional description, required WASM directory and
+filename, 1–100 inputs, and 1–100 outputs. Every port has an exact name and a kind:
+
+- `FIELD_LIST`: list items use a selected Fields definition; `fieldDefinitionId` is required.
+- `DYNAMIC_VARIABLE`: named, untyped placeholder; `fieldDefinitionId` must be null/omitted.
+
+There is no transformer evaluator, expression, runtime value, or execution endpoint
+in this iteration. The port name identifies the variable; its evaluation and
+runtime typing will be designed later. Variable-only transformers do not depend
+on any Fields definitions.
+
+Endpoints:
+
+- `GET /api/transformers`: list saved definitions, including both port schemas.
+- `POST /api/transformers`: create a configuration.
+- `PUT /api/transformers/{id}`: edit and replace its ordered input/output configuration.
+- `DELETE /api/transformers/{id}`: delete the configuration and ports.
+
+Example request:
+
+```json
+{
+  "name": "Enrich calls",
+  "description": "Combine call records with a dynamic threshold",
+  "directory": "/opt/etl/transformers",
+  "wasmFileName": "enrich_calls.wasm",
+  "inputs": [
+    {"name": "Calls", "kind": "FIELD_LIST", "fieldDefinitionId": "<saved-fields-uuid>"},
+    {"name": "threshold", "kind": "DYNAMIC_VARIABLE"}
+  ],
+  "outputs": [
+    {"name": "EnrichedCalls", "kind": "FIELD_LIST", "fieldDefinitionId": "<saved-fields-uuid>"},
+    {"name": "recordCount", "kind": "DYNAMIC_VARIABLE"}
+  ]
+}
+```
+
+Names are case sensitive, preserved without normalization, and cannot contain
+whitespace or control characters. They must be unique within each direction;
+inputs and outputs may share names. Port names and transformer names allow
+120 characters; descriptions allow 2000.
+
+Responses add generated ID/timestamps and a `fields` snapshot to every port.
+Dynamic variable snapshots are empty. List types are resolved from saved Fields
+under row locks in sorted UUID order. Fields definitions referenced on either
+side cannot be deleted; snapshotted keys/types cannot be removed or changed
+until the dependent ports release them. New Fields keys may be added, and
+saving the transformer refreshes its snapshots. Switching a port to a dynamic
+variable releases its Fields reference. Port replacement, including name swaps,
+occurs atomically in one transaction.
+
+Tests cover mixed ports, variable-only definitions, both-sided Fields protection,
+kind switching, persistence, ordering, validation, CRUD, and deletion cleanup.
+
+Migration V11 adds `directory` (up to 2048 characters) and `wasm_file_name`
+(up to 255 characters) to Transformers. New/edited configurations require both.
+Filename validation matches Mapper: a `.wasm` extension, no directory separators,
+and no control characters. Both components are preserved exactly; spaces in
+file/directory names are allowed. Existing transformer rows receive empty values
+and remain visible; configure their WASM location when editing them. File
+existence checks and module execution remain unimplemented.

@@ -75,6 +75,18 @@ Conditions support starts with, ends with, contains, equals, and length equals/g
 
 Java evaluates both sample tests and saved-rule application. When the condition matches, the transformed source replaces the destination value; otherwise the whole record stays unchanged. Missing, null, and non-string source values do not match. Saved rules protect their referenced Fields definition and field keys from incompatible edits. Workflow execution integration remains future work.
 
+### Dynamic: Mappers
+
+Open **Dynamic → Mapper** to create, edit, and delete mapper configurations. Each mapper has a name, optional description, a WASM directory, a separate `.wasm` filename, and one or more output lists. Each output list has an exact, case-sensitive name with no spaces or whitespace and selects a saved Fields definition as its type. Names must be unique within the mapper; `CallRecords` and `callRecords` remain distinct.
+
+The editor previews all field keys/types for each output. Saving snapshots those schemas and protects their Fields references from incompatible edits. Re-saving a mapper refreshes its snapshots from the selected definitions. The directory and filename are stored separately without changing them. File loading, WASM execution, and workflow integration are not yet implemented.
+
+### Dynamic: Transformers
+
+Open **Dynamic → Transformer** to create, edit, and delete named transformer configurations with an optional description, WASM directory, and separate `.wasm` filename. Each transformer has one or more inputs and one or more outputs. Each named port is either a **Fields list** (a list of a selected Fields definition) or a **Dynamic variable** (an untyped named placeholder for future evaluation).
+
+Mix both kinds on either side, preview Fields schemas, and add or remove ports. Names are case sensitive and unique within inputs or outputs; an input and output may share a name. List schemas are saved with the configuration and protected from incompatible Fields edits. Dynamic variables do not require a Fields definition. Evaluation and workflow execution will be designed later.
+
 ### Conditional rules
 
 Open **Rules → Conditional** to create named rules with an optional description and a Fields definition. All field types are available. Compare a field against a typed value or a compatible field, and nest groups using **AND** (all children) or **OR** (any child). For example: `end_time > start_time AND (status = "completed" OR duration > 60)`.
@@ -194,7 +206,7 @@ For the shared Java and frontend formatting tools, run `npm ci` at the repositor
 
 ## Current scope and documentation
 
-Connections, Fields, Tables, Normalize rules, and Conditional rules have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. Mappers, Workflows, and Executions are still under development.
+Connections, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. Workflows and Executions are still under development. WASM mapper and transformer execution remain future work.
 
 This implementation targets a trusted local workspace. The API has no authentication, and connection passwords are stored in plaintext in the configuration database. Keep `.env` out of version control and add authentication and secret storage before exposing the service to other users.
 

@@ -1,7 +1,7 @@
 export const navigation = [
   { id: 'home', label: 'Home', icon: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z' },
   { id: 'connectors', label: 'Connectors', icon: 'M9 3v5m6-5v5M7 8h10v4a5 5 0 0 1-10 0V8Zm5 9v4' },
-  { id: 'mappers', label: 'Mappers', icon: 'M4 7h16M4 17h16M8 4v6M16 14v6' },
+  { id: 'dynamic', label: 'Dynamic', icon: 'M4 7h16M4 17h16M8 4v6M16 14v6' },
   { id: 'workflows', label: 'Workflows', icon: 'M4 3h6v6H4zM14 15h6v6h-6zM7 9v6a3 3 0 0 0 3 3h4' },
   {
     id: 'executions',

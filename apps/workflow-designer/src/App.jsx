@@ -6,14 +6,14 @@ import Workflows from './pages/workflows/Workflows.jsx'
 import Connectors from './pages/connectors/Connectors.jsx'
 import Executions from './pages/executions/Executions.jsx'
 import SchemasTables from './pages/configuration/SchemasTables.jsx'
-import Mappers from './pages/mappers/Mappers.jsx'
+import Dynamic from './pages/dynamic/Dynamic.jsx'
 import Rules from './pages/rules/Rules.jsx'
 import './App.css'
 
 const pages = {
   home: Home,
   'schemas-tables': SchemasTables,
-  mappers: Mappers,
+  dynamic: Dynamic,
   workflows: Workflows,
   connectors: Connectors,
   executions: Executions,
@@ -22,7 +22,8 @@ const pages = {
 
 function readPage() {
   const hash = window.location.hash.slice(1)
-  const id = hash === 'configuration' ? 'schemas-tables' : hash
+  const aliases = { configuration: 'schemas-tables', mappers: 'dynamic' }
+  const id = aliases[hash] || hash
   return navigation.some((item) => item.id === id) ? id : 'home'
 }
 

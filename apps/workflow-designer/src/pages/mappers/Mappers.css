@@ -1,0 +1,72 @@
+.mappers-page textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  background: #0b0d0f;
+  border: 1px solid #343a40;
+  border-radius: 6px;
+  padding: 12px;
+  color: var(--text-primary);
+  font: inherit;
+}
+.mappers-page textarea:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+.mapper-outputs {
+  padding: 24px 28px;
+  border-top: 1px solid var(--border);
+}
+.mapper-outputs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.mapper-outputs-header p,
+.mapper-help {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.mapper-help a {
+  color: var(--mint);
+}
+.mapper-output {
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.mapper-field-preview {
+  padding: 0 28px 20px;
+  font-size: 0.8rem;
+}
+.mapper-field-preview .field-summary {
+  margin-top: 12px;
+  color: var(--text-secondary);
+}
+.mapper-remove {
+  margin: 0 28px 24px;
+}
+.mapper-saved-outputs > div {
+  margin-top: 14px;
+}
+.mappers-page code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 850px) {
+  .mapper-outputs {
+    padding: 20px;
+  }
+  .mapper-outputs-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .mapper-field-preview {
+    padding: 0 20px 20px;
+  }
+  .mapper-remove {
+    margin: 0 20px 20px;
+  }
+}
