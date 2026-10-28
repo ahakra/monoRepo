@@ -87,7 +87,8 @@
 }
 
 .sidebar__link[aria-current='page'] {
-  border-left-color: var(--accent);
-  background: var(--surface);
+  border-left-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue);
   font-weight: 600;
 }

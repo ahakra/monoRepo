@@ -2,8 +2,8 @@
   width: 100%;
   min-width: 0;
   resize: vertical;
-  background: #0b0d0f;
-  border: 1px solid #343a40;
+  background: var(--surface-input);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   padding: 12px;
   color: var(--text-primary);
@@ -37,7 +37,7 @@
 .rules-result {
   margin: 0 28px 28px;
   padding: 16px;
-  border: 1px solid #304239;
+  border: 1px solid var(--green-border);
   border-radius: 6px;
   font-size: 0.85rem;
   overflow-wrap: anywhere;
@@ -50,11 +50,11 @@
   padding: 0 28px 28px;
 }
 .config fieldset.conditional-group {
-  border: 1px solid #304239;
+  border: 1px solid var(--green-border);
   padding: 16px;
   border-radius: 8px;
   min-width: 0;
-  background: #111a17;
+  background: var(--green-soft);
 }
 .conditional-group legend {
   color: var(--mint);
@@ -98,7 +98,7 @@
 .conditional-comparison {
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #111316;
+  background: var(--surface);
 }
 .conditional-comparison .config-fields {
   padding: 16px;

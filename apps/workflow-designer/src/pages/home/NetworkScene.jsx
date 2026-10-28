@@ -147,17 +147,17 @@ export default function NetworkScene({ paused }) {
         centerY,
         spreadX * 1.1,
       )
-      halo.addColorStop(0, 'rgba(95, 153, 137, 0.055)')
-      halo.addColorStop(0.55, 'rgba(95, 153, 137, 0.02)')
-      halo.addColorStop(1, 'rgba(95, 153, 137, 0)')
+      halo.addColorStop(0, 'rgba(63, 99, 84, 0.055)')
+      halo.addColorStop(0.55, 'rgba(63, 99, 84, 0.02)')
+      halo.addColorStop(1, 'rgba(63, 99, 84, 0)')
       context.fillStyle = halo
       context.fillRect(0, 0, width, height)
 
       // Faint horizontal data lane feel.
       const lane = context.createLinearGradient(0, centerY, 0, centerY + height * 0.22)
-      lane.addColorStop(0, 'rgba(40, 79, 74, 0)')
-      lane.addColorStop(0.45, 'rgba(40, 79, 74, 0.04)')
-      lane.addColorStop(1, 'rgba(40, 79, 74, 0)')
+      lane.addColorStop(0, 'rgba(66, 101, 121, 0)')
+      lane.addColorStop(0.45, 'rgba(66, 101, 121, 0.04)')
+      lane.addColorStop(1, 'rgba(66, 101, 121, 0)')
       context.fillStyle = lane
       context.fillRect(0, centerY - height * 0.12, width, height * 0.24)
     }
@@ -175,7 +175,7 @@ export default function NetworkScene({ paused }) {
         context.beginPath()
         context.moveTo(a.x, a.y)
         context.lineTo(b.x, b.y)
-        context.strokeStyle = `rgba(151, 187, 180, ${alpha})`
+        context.strokeStyle = `rgba(66, 101, 121, ${alpha})`
         context.lineWidth = 0.35 + avgScale * 0.55
         context.stroke()
 
@@ -195,7 +195,7 @@ export default function NetworkScene({ paused }) {
             context.beginPath()
             context.moveTo(x1, y1)
             context.lineTo(x2, y2)
-            context.strokeStyle = `rgba(187, 237, 218, ${fade * (0.24 + avgScale * 0.18)})`
+            context.strokeStyle = `rgba(63, 99, 84, ${fade * (0.24 + avgScale * 0.18)})`
             context.lineWidth = 1.1 + avgScale * 0.45
             context.stroke()
           }
@@ -229,18 +229,15 @@ export default function NetworkScene({ paused }) {
         context.beginPath()
         context.moveTo(node.x, node.y)
         context.quadraticCurveTo(controlX, controlY, endX, endY)
-        context.strokeStyle = `rgba(151, 187, 180, ${node.attachment * 0.18 + strength * 0.34})`
+        context.strokeStyle = `rgba(66, 101, 121, ${node.attachment * 0.18 + strength * 0.34})`
         context.lineWidth = 0.95 + strength * 0.55
         context.stroke()
       })
 
       context.beginPath()
       context.arc(pointer.x, pointer.y, 2.4 + Math.sin(elapsed * 1.25) * 0.35, 0, Math.PI * 2)
-      context.fillStyle = `rgba(182, 233, 215, ${pointer.strength * 0.82})`
-      context.shadowColor = '#9fe1c7'
-      context.shadowBlur = 12
+      context.fillStyle = `rgba(66, 101, 121, ${pointer.strength * 0.82})`
       context.fill()
-      context.shadowBlur = 0
     }
 
     function drawNodes() {
@@ -254,18 +251,15 @@ export default function NetworkScene({ paused }) {
           if (major || light > 0.05) {
             context.beginPath()
             context.arc(node.x, node.y, 5.5 * node.scale + light * 2.8, 0, Math.PI * 2)
-            context.strokeStyle = `rgba(158, 207, 191, ${0.035 + light * 0.2})`
+            context.strokeStyle = `rgba(66, 101, 121, ${0.035 + light * 0.2})`
             context.lineWidth = 0.65 + node.scale * 0.2
             context.stroke()
           }
 
           context.beginPath()
           context.arc(node.x, node.y, 0.9 + node.scale * 1.45 + light * 0.6, 0, Math.PI * 2)
-          context.fillStyle = `rgba(177, 220, 204, ${0.1 + node.scale * 0.28 + light * 0.18})`
-          context.shadowColor = '#a6dcc7'
-          context.shadowBlur = 6 + light * 8
+          context.fillStyle = `rgba(63, 99, 84, ${0.1 + node.scale * 0.28 + light * 0.18})`
           context.fill()
-          context.shadowBlur = 0
         })
     }
 

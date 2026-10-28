@@ -2,8 +2,8 @@
   width: 100%;
   min-width: 0;
   resize: vertical;
-  background: #0b0d0f;
-  border: 1px solid #343a40;
+  background: var(--surface-input);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   padding: 12px;
   color: var(--text-primary);

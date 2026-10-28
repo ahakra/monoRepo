@@ -17,12 +17,12 @@
 .item-filter-controls select {
   width: 100%;
   min-width: 0;
-  background: #0b0d0f;
-  border: 1px solid #343a40;
+  background: var(--surface-input);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   padding: 10px;
   color: var(--text-primary);
-  color-scheme: dark;
+  color-scheme: light;
   font: inherit;
 }
 .item-filter-status {

@@ -2,29 +2,40 @@
   font-family: Inter, 'Segoe UI', Arial, sans-serif;
   color: var(--text-primary);
   background: var(--background);
-  color-scheme: dark;
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --background: #08090b;
-  --sidebar: #111317;
-  --surface: #15171b;
-  --surface-hover: #21252b;
-  --surface-elevated: #262a30;
+  /* Warm paper, ink, and matte sage/blue accents. */
+  --background: #eee4d0;
+  --sidebar: #e3d9c3;
+  --surface: #f7efdf;
+  --surface-input: #fcf6e9;
+  --surface-hover: #e8deca;
+  --surface-elevated: #e9dfca;
 
-  --text-primary: #e9edf0;
-  --text-secondary: #a8b0ba;
-  --text-muted: #737b86;
+  --text-primary: #303a35;
+  --text-secondary: #535e55;
+  --text-muted: #606354;
 
-  --accent: #e9edf0;
-  --accent-hover: #ffffff;
-  --border: #2c3036;
+  --accent: #3f6354;
+  --accent-hover: #304f42;
+  --on-accent: #fcf6e9;
+  --green-soft: #e1e8d8;
+  --green-border: #adbea6;
+  --blue: #426579;
+  --blue-soft: #e1e8e6;
+  --border: #c7bca3;
+  --input-border: #a99e86;
 
-  --success: #55b88a;
-  --warning: #d6a653;
-  --error: #e16c74;
+  --success: #356049;
+  --success-soft: #e0e9d8;
+  --warning: #805d2b;
+  --error: #91443b;
+  --error-soft: #f0ddd1;
+  --error-border: #c48f7d;
 }
 
 * {
@@ -38,6 +49,18 @@ body {
 }
 
 ::selection {
-  color: var(--background);
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--blue);
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }

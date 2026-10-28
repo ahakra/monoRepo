@@ -1,7 +1,7 @@
 .config {
   max-width: 1500px;
   margin: 0 auto;
-  --mint: #a9dfce;
+  --mint: var(--accent);
 }
 .config-eyebrow {
   color: var(--text-muted);
@@ -43,16 +43,16 @@
 }
 .config button.primary {
   background: var(--mint);
-  color: #112c24;
+  color: var(--on-accent);
   border-color: var(--mint);
   font-weight: 650;
 }
 .config button:disabled {
   opacity: 0.5;
-  cursor: wait;
+  cursor: not-allowed;
 }
-.config :is(button, input, select):focus-visible {
-  outline: 2px solid var(--mint);
+.config :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--blue);
   outline-offset: 3px;
 }
 .config-tabs {
@@ -69,20 +69,20 @@
   font-size: 0.85rem;
 }
 .config-tabs > button[aria-current] {
-  border-bottom-color: var(--mint);
-  color: var(--mint);
+  border-bottom-color: var(--blue);
+  color: var(--blue);
 }
 .config b {
   margin-left: 8px;
   background: var(--surface-elevated);
   border-radius: 5px;
   padding: 2px 7px;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--text-secondary);
 }
 .config-intro {
-  background: linear-gradient(110deg, #182722, #14191a);
-  border: 1px solid #2a3c35;
+  background: var(--green-soft);
+  border: 1px solid var(--green-border);
   border-radius: 10px;
   padding: 22px;
   margin-bottom: 26px;
@@ -98,15 +98,15 @@
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: #21382f;
+  background: var(--green-soft);
   color: var(--mint);
   font-size: 25px;
   flex-shrink: 0;
 }
 .config-badge {
-  color: #a7c8ba;
-  background: #1c2b25;
-  border: 1px solid #304239;
+  color: var(--accent);
+  background: var(--green-soft);
+  border: 1px solid var(--green-border);
   font-size: 0.7rem;
   padding: 5px 9px;
   border-radius: 5px;
@@ -117,7 +117,7 @@
 .config-panel {
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #111316;
+  background: var(--surface);
   overflow: hidden;
 }
 .config-panel > header {
@@ -162,7 +162,7 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
 }
 .config-fields input,
 .config-fields select,
@@ -171,8 +171,8 @@
 .table-add-field select {
   width: 100%;
   min-width: 0;
-  background: #0b0d0f;
-  border: 1px solid #343a40;
+  background: var(--surface-input);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   padding: 12px;
   color: var(--text-primary);
@@ -180,7 +180,7 @@
 }
 .config small {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   line-height: 1.5;
 }
 .config footer {
@@ -206,15 +206,15 @@
 }
 .config-row h3 {
   margin: 0;
-  font-size: 0.9rem;
-  font-weight: 550;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 .config-row p {
   margin: 6px 0 0;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
 }
 .config button.danger {
-  color: #e8a0a5;
+  color: var(--error);
 }
 .config-notice,
 .config-confirm {
@@ -225,12 +225,12 @@
   font-size: 0.85rem;
 }
 .config-notice.success {
-  background: #152920;
-  color: #a9dfce;
+  background: var(--success-soft);
+  color: var(--accent);
 }
 .config-notice.error {
-  background: #301e22;
-  color: #f1b2bb;
+  background: var(--error-soft);
+  color: var(--error);
 }
 .config-confirm {
   margin-top: 20px;
@@ -301,7 +301,8 @@
   justify-self: start;
 }
 .field-editor input[readonly] {
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  background: var(--surface-elevated);
 }
 .field-editor > small {
   margin-left: 14px;
@@ -365,21 +366,21 @@
   margin-top: 6px;
 }
 .schema-change-list .schema-data-loss {
-  color: #f1b2bb;
+  color: var(--error);
 }
 .schema-change-list pre {
   padding: 14px;
-  background: #0b0d0f;
+  background: var(--surface-input);
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: auto;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
 }
 .schema-acknowledgment {
   padding: 18px;
-  border: 1px solid #74444b;
+  border: 1px solid var(--error-border);
   border-radius: 7px;
-  color: #f1b2bb;
+  color: var(--error);
   line-height: 1.5;
 }
 .table-picker-header,
@@ -445,7 +446,7 @@
 }
 .table-sql {
   padding: 0 26px 20px;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
 }
 .table-sql summary {
   cursor: pointer;
@@ -455,7 +456,7 @@
 .table-confirm-sql {
   overflow: auto;
   padding: 16px;
-  background: #0b0d0f;
+  background: var(--surface-input);
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.8rem;
@@ -491,4 +492,40 @@
     grid-column: 1 / -1;
     justify-self: start;
   }
+}
+
+.config-panel > header,
+.config footer {
+  background: var(--surface-elevated);
+}
+.config-fields :is(input, select, textarea),
+.field-editor :is(input, select),
+.table-add-field select {
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.config button.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.config input[type='checkbox'] {
+  cursor: pointer;
+}
+.field-summary code {
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.table-sql pre,
+.table-confirm-sql,
+.schema-change-list pre {
+  background: var(--blue-soft);
+}
+.config-notice.success {
+  color: var(--success);
+  border-color: var(--green-border);
+}
+.config-notice.error {
+  border-color: var(--error-border);
 }
