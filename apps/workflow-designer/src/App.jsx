@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { navigation } from './navigation.js'
 import Sidebar from './components/sidebar/Sidebar.jsx'
 import Home from './pages/home/Home.jsx'
-import Workflows from './pages/workflows/Workflows.jsx'
 import Connectors from './pages/connectors/Connectors.jsx'
 import Executions from './pages/executions/Executions.jsx'
 import SchemasTables from './pages/configuration/SchemasTables.jsx'
 import Dynamic from './pages/dynamic/Dynamic.jsx'
 import Rules from './pages/rules/Rules.jsx'
 import './App.css'
+
+const Workflows = lazy(() => import('./pages/workflows/Workflows.jsx'))
 
 const pages = {
   home: Home,
@@ -45,7 +46,15 @@ export default function App() {
   return (
     <div className="app-shell">
       <Sidebar activePage={activePage} navigation={navigation} />
-      <Page />
+      <Suspense
+        fallback={
+          <main className="page" role="status">
+            Loading page…
+          </main>
+        }
+      >
+        <Page />
+      </Suspense>
     </div>
   )
 }
