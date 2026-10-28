@@ -118,13 +118,21 @@ For an existing table, **Review column changes** compares its actual PostgreSQL 
 
 To change a used field, first remove it from **every** affected table mapping and save. Then edit the field, add it back to the mapping, save, and review the resulting database changes. To drop a column, remove it from the mapping, save, and select its DROP operation in the review. Renaming a field proposes separate ADD and DROP operations and does not copy existing values to the new column.
 
+## Workflow designer preview
+
+Open **Workflows → New workflow** to start a React Flow canvas with a required **Data source** block. Select that block and choose an existing File or PostgreSQL connector in the Properties panel. Move blocks by dragging them. Add a **Next step** placeholder by dragging it from the block library or clicking it, then draw an arrow from the right-hand output dot to another block’s left-hand input dot.
+
+The editor includes zoom/pan controls, a minimap, editable labels, selectable/deletable arrows, and guards against cycles, duplicate arrows, and incoming edges to the source. The initial source cannot be deleted. The Mapper block selects a saved mapper and shows one named output handle per defined output list, with its field schema available in Properties. Connect lists independently; different output lists may feed the same target. Sync outputs applies the latest definition, retaining arrows for matching list names and removing arrows for deleted lists. Conditional rule blocks select a saved rule and provide one input with Matched and Not matched outputs. Normalize rule blocks select a saved rule and provide one input and one Output. Properties preview the selected rule and Fields definition. Fixed rule ports retain their arrows when changing the selected definition. Mapper ports display their Fields type, and connections require the same saved Fields definition on both ends. Raw sources feed mapper inputs; rules consume typed outputs. Incompatible existing arrows are highlighted for correction before saving. Transformer blocks select saved definitions and expose every named input and output with its type. Fields lists connect to the same saved Fields definition, and dynamic variables connect only to dynamic variables. Sync ports preserves exact-name arrows and removes arrows for deleted ports. These blocks configure the graph only; workflow rule execution remains future work. Placeholders have no processing behavior.
+
+**Save draft** stores the graph, positions, viewport, name/description, and connector references in this browser. Reopen it from the workflow list, search/filter local drafts, or **Export JSON** to keep a separate copy. Unsaved changes are not persisted automatically. No new Java backend, workflow API, or execution engine is implemented. Existing connector APIs are read only to populate the source selector; drafts contain connector references rather than credentials or connector settings.
+
 ## Searching saved items
 
 Connectors, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers show creation/update timestamps and provide a search/filter toolbar. Search all supported details or choose a specific field, such as name or description where available. Filters combine with search, and include relevant types, creation-date ranges, and sorting by name, creation, or update time. Counts show matching versus total items; Clear filters restores the full list.
 
 Date ranges use the browser's local calendar and include the entire end day. Connector creation time is now recorded for new records. Legacy connectors keep an unknown creation time because their original creation dates were not stored; they remain visible without date filters and are excluded from creation-date ranges. Existing entity timestamps are preserved on edits.
 
-Filtering runs locally over the records already returned by each list API. Workflow and Executions pages have no saved items yet.
+Filtering runs locally over the records already returned by each list API. Workflow drafts are saved locally in the browser and use the same search controls. Executions has no run history yet.
 
 ## Repository layout
 
@@ -227,7 +235,7 @@ For the shared Java and frontend formatting tools, run `npm ci` at the repositor
 
 ## Current scope and documentation
 
-Connections, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. Workflows and Executions are still under development. WASM mapper and transformer execution remain future work.
+Connections, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. The React Flow workflow editor supports browser-local drafts; workflow execution and Executions remain under development. WASM mapper and transformer execution remain future work.
 
 This implementation targets a trusted local workspace. The API has no authentication, and connection passwords are stored in plaintext in the configuration database. Keep `.env` out of version control and add authentication and secret storage before exposing the service to other users.
 
