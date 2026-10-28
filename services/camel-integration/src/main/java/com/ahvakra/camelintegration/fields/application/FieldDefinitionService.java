@@ -59,7 +59,7 @@ public class FieldDefinitionService {
                         .distinct()
                         .sorted()
                         .collect(java.util.stream.Collectors.joining(", ")) +
-                    ". Remove the dependent table configurations first."
+                    ". Edit or delete the dependent tables or rules first."
             );
             store.delete(id);
             return null;

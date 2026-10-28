@@ -6,7 +6,7 @@ An integration and ETL platform built with **Spring Boot + Apache Camel** and a 
 
 ### Connections
 
-Use **Configuration → Connections** to create, edit, test, and delete saved connector configurations. PostgreSQL is the implemented connection type.
+Use **Connectors** to create, edit, test, and delete saved connector configurations. PostgreSQL is the implemented connection type.
 
 - Configure the host, port, database, username, password, and SSL mode.
 - Reuse saved connections when defining tables.
@@ -16,11 +16,11 @@ Use **Configuration → Connections** to create, edit, test, and delete saved co
 
 Saving a connection stores its configuration. Testing and optional database creation are separate actions. A connection referenced by a table configuration cannot be deleted.
 
-The sidebar's separate **Connectors** page is a placeholder; implemented connection management is under **Configuration**. Additional connector types and pipeline integration are future work.
+Connectors covers File, FTP/SFTP, SQL, and APIs. PostgreSQL connection management is implemented; additional connector types and pipeline integration are future work.
 
 ### Fields
 
-Use **Configuration → Fields** to define named, reusable dictionaries of field keys and logical types:
+Use **Schemas & Tables → Fields** to define named, reusable dictionaries of field keys and logical types:
 
 ```json
 {
@@ -44,7 +44,7 @@ Used definitions cannot be deleted. Field keys and types used by table mappings 
 
 ### Tables
 
-Use **Configuration → Tables** to map fields to a target PostgreSQL table:
+Use **Schemas & Tables → Tables** to map fields to a target PostgreSQL table:
 
 1. Select an existing **PostgreSQL** connection and one saved Fields definition.
 2. Enter a configuration name, an existing schema (default `public`), and a table name.
@@ -67,6 +67,14 @@ Only fields from the chosen dictionary can be selected. Their types are inherite
 
 New columns are nullable, with no automatic primary keys, defaults, or indexes. Creating a table requires an existing database and schema. Existing target tables are not overwritten. Saving or deleting a mapping alone does not alter or drop a physical table.
 
+### Normalize rules
+
+Open **Rules** to create, edit, test, and delete Normalize rules. Choose a Fields definition, a source string field, a condition, an action, and a destination string field. Rules have a name and optional description.
+
+Conditions support starts with, ends with, contains, equals, and length equals/greater than/less than. Actions support copying, adding/removing a prefix or suffix, replacing text, trimming whitespace, and uppercase/lowercase conversion. Replace string uses literal, case-sensitive find text and replaces every occurrence; an empty replacement removes the find text. Only string/text fields are eligible. The current Fields editor uses `string` for text.
+
+Java evaluates both sample tests and saved-rule application. When the condition matches, the transformed source replaces the destination value; otherwise the whole record stays unchanged. Missing, null, and non-string source values do not match. Saved rules protect their referenced Fields definition and field keys from incompatible edits. Workflow execution integration remains future work.
+
 ### Reviewed column changes
 
 For an existing table, **Review column changes** compares its actual PostgreSQL columns with the saved mapping and proposes **ADD**, **ALTER**, and **DROP COLUMN** statements.
@@ -83,7 +91,7 @@ To change a used field, first remove it from **every** affected table mapping an
 
 | Path | Purpose |
 | --- | --- |
-| [`apps/workflow-designer`](apps/workflow-designer) | React interface and Configuration editors |
+| [`apps/workflow-designer`](apps/workflow-designer) | React interface, connector editors, and schema/table utilities |
 | [`services/camel-integration`](services/camel-integration) | Spring Boot APIs, Camel routes, validation, JPA persistence, and PostgreSQL operations |
 | [`docker`](docker) | PostgreSQL 17 and pgAdmin Compose setup |
 | [`docs`](docs) | Project notes and Camel reference material |
@@ -121,7 +129,7 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by Vite and select **Configuration**. The backend listens on port **8081**, and Vite proxies `/api` to it. Flyway applies migrations, including the CDR sample, when the backend starts. pgAdmin is available at **http://localhost:5050** by default; its login is separate from the database credentials.
+Open the URL printed by Vite and select **Connectors**. The backend listens on port **8081**, and Vite proxies `/api` to it. Flyway applies migrations, including the CDR sample, when the backend starts. pgAdmin is available at **http://localhost:5050** by default; its login is separate from the database credentials.
 
 The backend reads the root `.env` when launched from the repository root or the service directory. Environment variables can override its settings, including `POSTGRES_JDBC_URL` for platform configuration storage.
 
@@ -180,7 +188,7 @@ For the shared Java and frontend formatting tools, run `npm ci` at the repositor
 
 ## Current scope and documentation
 
-Connections, Fields, and Tables have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. The Workflows, Connectors, and other application sections are still under development.
+Connections, Fields, Tables, and Normalize rules have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. Mappers, Workflows, and Executions are still under development.
 
 This implementation targets a trusted local workspace. The API has no authentication, and connection passwords are stored in plaintext in the configuration database. Keep `.env` out of version control and add authentication and secret storage before exposing the service to other users.
 

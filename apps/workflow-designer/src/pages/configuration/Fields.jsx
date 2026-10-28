@@ -128,7 +128,7 @@ export default function Fields({ active }) {
       <header className="config-header">
         <div>
           <h2 id="fields-title">Fields</h2>
-          <p>Define reusable dictionaries of field keys and types for table mappings.</p>
+          <p>Define reusable dictionaries of field keys and types for tables and rules.</p>
         </div>
         <button className="primary" disabled={!!form || busy || loading} onClick={() => open()}>
           + New fields
@@ -215,7 +215,7 @@ export default function Fields({ active }) {
                           className="config-badge"
                           title={
                             usedBy.length
-                              ? `Used by: ${usedBy.map((reference) => reference.tableName).join(', ')}. Remove this column from every table mapping and save before editing it.`
+                              ? `Used by: ${usedBy.map((reference) => reference.tableName).join(', ')}. Update the dependent tables or rules before editing this field.`
                               : 'Built-in field'
                           }
                         >
@@ -242,9 +242,8 @@ export default function Fields({ active }) {
                 {form.usedBy.length > 0 && (
                   <p className="field-usage-help">
                     Locked fields are used by:{' '}
-                    {form.usedBy.map((reference) => reference.tableName).join(', ')}. Remove the
-                    column from every affected table mapping and save it first. Then edit the field,
-                    add it back to the table, and review PostgreSQL column changes.
+                    {form.usedBy.map((reference) => reference.tableName).join(', ')}. Update the
+                    dependent tables or rules before removing these fields or changing their types.
                   </p>
                 )}
                 <button
@@ -258,8 +257,8 @@ export default function Fields({ active }) {
               </div>
               <footer>
                 <small>
-                  Saving stores a reusable definition for Tables. Fields used by a table must keep
-                  their keys and types.
+                  Saving stores a reusable definition for Tables and Rules. Referenced fields must
+                  keep compatible keys and types.
                 </small>
                 <button type="submit" className="primary">
                   {busy ? 'Saving…' : 'Save fields'}

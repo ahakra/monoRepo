@@ -1,0 +1,48 @@
+.rules-page textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  background: #0b0d0f;
+  border: 1px solid #343a40;
+  border-radius: 6px;
+  padding: 12px;
+  color: var(--text-primary);
+  font: inherit;
+}
+.rules-page textarea:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+.rules-step {
+  border-top: 1px solid var(--border);
+}
+.rules-step h3 {
+  margin: 24px 28px 0;
+  font-size: 0.95rem;
+  font-weight: 550;
+}
+.rules-page .rules-help {
+  align-self: center;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.rules-help a {
+  color: var(--mint);
+}
+.rules-test-action {
+  align-self: end;
+}
+.rules-result {
+  margin: 0 28px 28px;
+  padding: 16px;
+  border: 1px solid #304239;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.rules-result code,
+.rules-page .config-row code {
+  white-space: pre-wrap;
+}

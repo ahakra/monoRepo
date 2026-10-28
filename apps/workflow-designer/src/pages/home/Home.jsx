@@ -35,7 +35,7 @@ export default function Home() {
             Connect your sources. Shape your pipelines.
             <br className="home-desktop-break" /> Bring every part of your data together.
           </p>
-          <a className="home-primary" href="#configuration">
+          <a className="home-primary" href="#connectors">
             Set up a connection <Arrow />
           </a>
         </div>
@@ -59,14 +59,14 @@ export default function Home() {
           <span>EXPLORE YOUR WORKSPACE</span>
         </div>
         <div className="home-shortcuts">
-          <a className="home-shortcut" href="#configuration">
+          <a className="home-shortcut" href="#connectors">
             <span className="home-card-number">01 / CONNECT</span>
             <div>
               <h3>Bring your data in</h3>
               <Arrow />
             </div>
             <p>Configure and test the connections to your data sources and destinations.</p>
-            <span className="home-card-link">Open configuration</span>
+            <span className="home-card-link">Open connectors</span>
           </a>
           <a className="home-shortcut" href="#workflows">
             <span className="home-card-number">02 / BUILD</span>
@@ -77,14 +77,14 @@ export default function Home() {
             <p>A home for the paths your data will take, from source to destination.</p>
             <span className="home-card-link">Open workflows</span>
           </a>
-          <a className="home-shortcut" href="#dashboard">
-            <span className="home-card-number">03 / OVERVIEW</span>
+          <a className="home-shortcut" href="#executions">
+            <span className="home-card-number">03 / MONITOR</span>
             <div>
-              <h3>Your workspace at a glance</h3>
+              <h3>Follow your executions</h3>
               <Arrow />
             </div>
-            <p>Head to the dashboard for your integration workspace.</p>
-            <span className="home-card-link">Open dashboard</span>
+            <p>Explore the home for run history, monitoring, logs, and retries.</p>
+            <span className="home-card-link">Open executions</span>
           </a>
         </div>
       </section>

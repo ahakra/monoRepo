@@ -18,7 +18,7 @@ public class FieldsExceptionHandler {
     public ProblemDetail inUse() {
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.CONFLICT,
-            "This Fields definition is used by a table configuration. Delete the dependent table configurations first."
+            "This Fields definition is used by a table or rule. Edit or delete the dependent configurations first."
         );
     }
 

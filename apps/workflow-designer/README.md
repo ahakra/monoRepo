@@ -15,14 +15,24 @@ Pages live in `src/pages/`; reusable UI such as the sidebar lives in
 in `src/index.css`. Sidebar entries are defined in `src/navigation.js`, and
 page components are registered in `src/App.jsx`.
 
-Home is the default page. The sidebar also links to Dashboard, Workflows,
-Configuration, Connectors, Executions, Logs, and Settings. Hash navigation supports
-reloads and browser back/forward without server routing configuration.
+Home remains the default landing page. The sidebar lists these sections in order:
 
-Configuration integrates with the Java backend to manage PostgreSQL connections,
-reusable Fields definitions, and Tables. It includes field-usage protections,
-table creation, and reviewed ADD/ALTER/DROP column operations. Other sections
-remain under development; the separate Connectors page is a placeholder.
+1. **Connectors** — File, FTP/SFTP, SQL, and APIs.
+2. **Mappers** — Parsing, transformations, and field mapping.
+3. **Workflows** — Design and configure execution flows.
+4. **Executions** — Run history, monitoring, logs, and retries.
+5. **Schemas & Tables** — Optional field definitions and database table creation.
+6. **Rules** — Reusable rules for ETL workflows.
+
+Hash navigation supports reloads and browser back/forward without server routing
+configuration. Existing `#configuration` links open Schemas & Tables.
+
+Connectors integrates with the Java backend to manage PostgreSQL connections.
+Schemas & Tables contains reusable Fields definitions and Tables, including
+field-usage protections, table creation, and reviewed ADD/ALTER/DROP column
+operations. Rules provides a Normalize editor with string/text field selectors,
+conditions, actions, and sample testing through the Java API. Other connector
+types, Mappers, Workflows, and Executions remain under development.
 
 Vite proxies `/api` to the backend on port 8081. See the
 [repository overview](../../README.md) for local setup and the

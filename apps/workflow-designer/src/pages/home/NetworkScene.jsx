@@ -105,13 +105,12 @@ export default function NetworkScene({ paused }) {
         const rx = Math.cos(angle) * node.radius
         const rz = Math.sin(angle) * node.radius
         const ry =
-          Math.sin(node.theta * 1.3 + elapsed * 0.22 + node.phase * 0.12) * (0.24 + node.band * 0.34)
+          Math.sin(node.theta * 1.3 + elapsed * 0.22 + node.phase * 0.12) *
+          (0.24 + node.band * 0.34)
 
         // Depth layering: farther nodes recede into screen, closer nodes come forward.
         const zDepth =
-          rz * 260 +
-          (node.depthBias - 0.5) * 180 +
-          Math.sin(elapsed * 0.33 + node.phase) * 16
+          rz * 260 + (node.depthBias - 0.5) * 180 + Math.sin(elapsed * 0.33 + node.phase) * 16
 
         const xDepth = rx * spreadX
         const yDepth = ry * spreadY
@@ -140,7 +139,14 @@ export default function NetworkScene({ paused }) {
     }
 
     function drawBackground(centerX, centerY, spreadX) {
-      const halo = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, spreadX * 1.1)
+      const halo = context.createRadialGradient(
+        centerX,
+        centerY,
+        0,
+        centerX,
+        centerY,
+        spreadX * 1.1,
+      )
       halo.addColorStop(0, 'rgba(95, 153, 137, 0.055)')
       halo.addColorStop(0.55, 'rgba(95, 153, 137, 0.02)')
       halo.addColorStop(1, 'rgba(95, 153, 137, 0)')
