@@ -51,7 +51,7 @@ The Java packages separate responsibilities:
 - `infrastructure/persistence`: JPA entity, Spring Data repository, and persistence adapter.
 - `infrastructure/postgres`: PostgreSQL validation, JDBC connection factory, and connection testing/creation.
 
-To add another type, register a `ConnectionTypeHandler` bean with its own settings validation and testing behavior, and add its frontend form. The application service dispatches by type; the entity and repository have no database-specific fields. MySQL and HTTP are extension points, not implemented types.
+To add another type, register a `ConnectionTypeHandler` bean with its own settings validation and testing behavior, and add its frontend form. The application service dispatches by type; the entity and repository have no database-specific fields. File is also implemented; MySQL and HTTP remain extension points.
 
 ## Fields
 
@@ -450,4 +450,124 @@ The frontend provides search, relevant type filters, local creation-date ranges,
 and sorting over each existing list endpoint’s results. No server-side search or
 pagination parameters are introduced. Only documented public fields are searched;
 connections have no description field, so their search targets name, connector
-type, host, database, and username. Dates display in the browser’s timezone.
+type, host/database/username, file directories, filters, and charset. Dates display in the browser’s timezone.
+
+## File connectors
+
+`type: "file"` uses the existing `/api/connections` CRUD and test endpoints. No
+new migration is needed: settings remain a map of strings. The module declares
+`camel-file` 4.22.0 explicitly. Settings follow the [Apache Camel 4.22 File
+component](https://camel.apache.org/components/4.22.x/file-component.html).
+This is a File **consumer** configuration; workflow execution is not started by
+saving or testing the connector.
+
+```json
+{
+  "name": "CDR inbox",
+  "type": "file",
+  "settings": {
+    "directoryName": "/data/inbox",
+    "move": ".processed",
+    "moveFailed": ".invalid",
+    "includeExt": "csv,txt",
+    "recursive": "false",
+    "autoCreate": "true",
+    "readLock": "changed",
+    "readLockTimeout": "10000",
+    "readLockCheckInterval": "1000",
+    "delay": "500",
+    "initialDelay": "1000"
+  }
+}
+```
+
+Supported settings:
+
+| Key | Purpose / default |
+| --- | --- |
+| `directoryName` | Required literal source directory on the Java service host; no dynamic expressions or property placeholders. |
+| `move` | Destination directory or Camel File expression after successful processing; application default `.processed`. |
+| `moveFailed` | Destination directory or Camel expression after failed processing; application default `.invalid`. |
+| `preMove` | Optional in-progress move directory/expression. |
+| `fileName` | Optional exact filename or Camel File expression filter. |
+| `include`, `exclude` | Optional case-insensitive Java filename regexes, supplied as plain patterns. |
+| `includeExt`, `excludeExt` | Optional comma-separated extensions. |
+| `charset` | Optional supported JVM charset; blank leaves Camel's encoding default. |
+| `recursive` | Poll subdirectories; default false. |
+| `autoCreate` | Create a missing source during execution; default true. |
+| `delay`, `initialDelay` | Milliseconds; defaults 500 and 1000. Delay must be positive and initial delay non-negative. |
+| `maxMessagesPerPoll` | Non-negative integer; application default 0 (unlimited). |
+| `readLock` | `none` (Camel default), `markerFile`, `changed`, `fileLock`, `rename`, `idempotent`, `idempotent-changed`, or `idempotent-rename`. |
+| `readLockTimeout`, `readLockCheckInterval` | Milliseconds; defaults 10000 and 1000. Timeout 0 means indefinite; positive timeout must exceed the interval for timed strategies. |
+| `readLockMinAge`, `readLockMinLength` | Milliseconds / bytes for changed-based locks; defaults 0 / 1. |
+
+Unrecognized keys, invalid booleans/numbers/regexes/charsets, and invalid lock
+settings return HTTP 400. Path and expression strings are preserved without
+trimming. All strings are limited to 2048 characters to match settings storage.
+The UI and serializer keep File settings separate from PostgreSQL settings and
+credentials. Connector type is immutable after creation, protecting existing
+references from being switched to an incompatible type.
+
+Relative move directories resolve from the consumed file's parent. Expressions
+may compute a destination filename. `moveFailed` means failed exchanges, not an
+automatic content-validation rule: future workflow validation must mark the
+exchange failed to use this destination. This form supports a curated subset of
+File consumer options; it does not expose every Camel option or producer options.
+
+**Test directories** checks source and literal move destinations (or their nearest
+existing parents) for directory/read/write/search access. If the source is missing
+with `autoCreate=true`, the test checks its existing ancestor and reports that it
+can be created later; it does not create it. With autoCreate disabled, a missing
+source fails the test. Destination expressions are explicitly reported as requiring
+execution-time checks. Tests do not start consumers, evaluate destination
+expressions, create folders, or move/read/delete source files. These access checks
+cannot guarantee that permissions remain unchanged when a workflow eventually runs.
+
+Tests include real Camel File endpoint option binding without starting a consumer,
+filesystem checks in temporary directories, CRUD/type protections, exact string
+round trips, and PostgreSQL/File frontend payload separation.
+
+## Advanced PostgreSQL connector properties
+
+The PostgreSQL connector accepts `currentSchema`, `connectTimeout`,
+`socketTimeout`, and `sslrootcert` in its saved settings map, matching pgJDBC
+property names. The UI exposes them under Advanced PostgreSQL settings. All
+operations using `PostgresConnectionFactory` (connection testing, optional
+database creation, and target table/schema operations) receive these configured
+properties instead of fixed timeouts.
+
+| Setting | Meaning | Application default |
+| --- | --- | --- |
+| `currentSchema` | Optional default schema/search path; accepts a comma-separated schema list. | Driver/database user default when omitted or blank. |
+| `connectTimeout` | Socket connection timeout in seconds. | 5 seconds, preserving prior application behavior. |
+| `socketTimeout` | Socket read timeout in seconds. | 10 seconds, preserving prior application behavior. |
+| `sslrootcert` | Optional root CA certificate path on the Java service host, used for SSL verification. | pgJDBC's certificate location when omitted or blank. |
+
+Timeouts accept whole numbers from 0 through 2147484; 0 disables that timeout.
+Omitted or blank timeouts receive the application defaults. Optional schema and
+certificate values allow up to 2048 characters, reject null characters, and are
+preserved exactly, including quoted schema identifiers or spaces in certificate
+paths. Blank values are omitted from JDBC properties so driver defaults apply.
+Existing saved connectors without the new keys remain compatible, without a
+migration. Password preservation and response redaction are unchanged.
+
+Example additional settings:
+
+```json
+{
+  "currentSchema": "analytics,public",
+  "connectTimeout": "30",
+  "socketTimeout": "120",
+  "sslrootcert": "/opt/etl/certs/root.crt"
+}
+```
+
+Use a verification SSL mode, such as `verify-full`, when configuring a custom CA
+for certificate validation. Query, polling, parameter, result, and transaction
+options still belong to future Camel workflow steps. Adding these connection
+properties does not start a Camel SQL consumer or register a Camel DataSource.
+See the [pgJDBC connection-property reference](https://jdbc.postgresql.org/documentation/use/).
+
+Tests verify validation boundaries, persistence/API round trips, legacy defaults,
+and the exact properties passed to `DriverManager`, including custom schemas,
+certificate paths, configurable timeouts, and disabled timeouts.

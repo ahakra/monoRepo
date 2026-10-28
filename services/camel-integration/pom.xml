@@ -61,6 +61,11 @@
             <artifactId>camel-spring-boot-starter</artifactId>
             <version>4.22.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-file</artifactId>
+            <version>4.22.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

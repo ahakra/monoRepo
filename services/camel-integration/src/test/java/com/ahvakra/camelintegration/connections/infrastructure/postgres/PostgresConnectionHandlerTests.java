@@ -109,6 +109,51 @@ class PostgresConnectionHandlerTests {
     }
 
     @Test
+    void validatesAdvancedPropertiesAndDefaultsOlderDefinitions() {
+        var base = definition(false).settings();
+        var defaults = handler.validateSettings(base);
+        assertEquals("5", defaults.get("connectTimeout"));
+        assertEquals("10", defaults.get("socketTimeout"));
+        var configured = new java.util.HashMap<>(base);
+        configured.put("connectTimeout", "30");
+        configured.put("socketTimeout", "0");
+        configured.put("currentSchema", "\"Customer Data\",public");
+        configured.put("sslrootcert", " /opt/certs/root.crt ");
+        var validated = handler.validateSettings(configured);
+        assertEquals("30", validated.get("connectTimeout"));
+        assertEquals("0", validated.get("socketTimeout"));
+        assertEquals(configured.get("currentSchema"), validated.get("currentSchema"));
+        assertEquals(configured.get("sslrootcert"), validated.get("sslrootcert"));
+        for (String key : new String[] { "connectTimeout", "socketTimeout" }) {
+            for (String invalid : new String[] { "-1", "1.5", "invalid", "2147485" }) {
+                var settings = new java.util.HashMap<>(base);
+                settings.put(key, invalid);
+                assertThrows(InvalidConnectionException.class, () ->
+                    handler.validateSettings(settings)
+                );
+            }
+        }
+        configured.put("currentSchema", " ");
+        configured.put("sslrootcert", "");
+        configured.put("connectTimeout", "");
+        configured.put("socketTimeout", " ");
+        var optional = handler.validateSettings(configured);
+        assertFalse(optional.containsKey("currentSchema"));
+        assertFalse(optional.containsKey("sslrootcert"));
+        assertEquals("5", optional.get("connectTimeout"));
+        assertEquals("10", optional.get("socketTimeout"));
+        for (String key : new String[] { "currentSchema", "sslrootcert" }) {
+            for (String invalid : new String[] { "x".repeat(2049), "bad\0value" }) {
+                var settings = new java.util.HashMap<>(base);
+                settings.put(key, invalid);
+                assertThrows(InvalidConnectionException.class, () ->
+                    handler.validateSettings(settings)
+                );
+            }
+        }
+    }
+
+    @Test
     void rejectsUnsafeOrTruncatedDatabaseNames() {
         var settings = new java.util.HashMap<>(definition(true).settings());
         settings.put("database", "db?sslmode=disable");

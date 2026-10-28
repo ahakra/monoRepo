@@ -281,6 +281,20 @@
   height: 16px;
   accent-color: var(--mint);
 }
+.config-connection-advanced {
+  grid-column: 1 / -1;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.config-connection-advanced > summary {
+  cursor: pointer;
+  padding: 16px;
+  color: var(--blue);
+  font-size: 0.875rem;
+}
+.config-connection-advanced .config-fields {
+  padding: 20px;
+}
 .field-editor {
   padding: 0 28px 28px;
 }

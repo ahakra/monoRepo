@@ -6,17 +6,30 @@ An integration and ETL platform built with **Spring Boot + Apache Camel** and a 
 
 ### Connections
 
-Use **Connectors** to create, edit, test, and delete saved connector configurations. PostgreSQL is the implemented connection type.
+Use **Connectors** to create, edit, test, and delete saved connector configurations. File and PostgreSQL are the implemented connection types.
 
 - Configure the host, port, database, username, password, and SSL mode.
 - Reuse saved connections when defining tables.
+- Configure optional `currentSchema`, `connectTimeout`, `socketTimeout`, and `sslrootcert` in Advanced PostgreSQL settings. Timeouts use seconds; 0 disables them.
 - Test a connection before using it.
 - Optionally create a missing database with **Create & test**, when the database user has the required permission.
 - Keep the existing password when an edit leaves the password blank. Passwords are excluded from API responses.
 
 Saving a connection stores its configuration. Testing and optional database creation are separate actions. A connection referenced by a table configuration cannot be deleted.
 
-Connectors covers File, FTP/SFTP, SQL, and APIs. PostgreSQL connection management is implemented; additional connector types and pipeline integration are future work.
+Connectors covers File, FTP/SFTP, SQL, and APIs. File and PostgreSQL connection management are implemented; FTP/SFTP, APIs, and pipeline integration are future work.
+
+### File connectors
+
+Choose **Connectors → New connection → File** to configure a local File consumer using Apache Camel 4.22 option names:
+
+- **Source directory** → `directoryName`.
+- **Processed directory** → `move`, default `.processed`.
+- **Invalid / failed directory** → `moveFailed`, default `.invalid`.
+
+Advanced options include filename/extension/regex filters, recursive polling, character encoding, polling intervals, in-progress moves, and read locks. **Test directories** checks directory access without creating, moving, or consuming files. Saving only stores configuration; workflow consumption is not yet implemented. A business validation failure must eventually fail the Camel exchange to use `moveFailed`.
+
+Saved connector types cannot be changed; create a new connector to use another type.
 
 ### Fields
 

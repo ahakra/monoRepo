@@ -14,7 +14,10 @@ export default function Connectors() {
         <div>
           <h1 id="connectors-title">Connectors</h1>
           <p>Connect sources and destinations through files, FTP/SFTP, SQL, and APIs.</p>
-          <p>PostgreSQL connections are available now. Other connector types are planned.</p>
+          <p>
+            File and PostgreSQL connectors are available now. FTP/SFTP and API connectors are
+            planned.
+          </p>
         </div>
       </header>
       <Connections />

@@ -71,6 +71,67 @@ export default function PostgresFields({ form, onChange }) {
         />
         <small>Stored by the service; never returned to the browser.</small>
       </label>
+      <details className="config-connection-advanced">
+        <summary>Advanced PostgreSQL settings</summary>
+        <div className="config-fields">
+          <label>
+            Default schema / search path (currentSchema)
+            <input
+              name="currentSchema"
+              value={form.currentSchema}
+              onChange={onChange}
+              maxLength={2048}
+              placeholder="e.g. public,analytics"
+            />
+            <small>
+              Optional comma-separated schemas for unqualified table names. Leave blank to use the
+              database user’s search path.
+            </small>
+          </label>
+          <label>
+            Connection timeout, seconds (connectTimeout)
+            <input
+              name="connectTimeout"
+              type="number"
+              value={form.connectTimeout}
+              onChange={onChange}
+              required
+              min="0"
+              max="2147484"
+              step="1"
+            />
+            <small>Maximum time to establish a connection. 0 disables this timeout.</small>
+          </label>
+          <label>
+            Socket read timeout, seconds (socketTimeout)
+            <input
+              name="socketTimeout"
+              type="number"
+              value={form.socketTimeout}
+              onChange={onChange}
+              required
+              min="0"
+              max="2147484"
+              step="1"
+            />
+            <small>Maximum time waiting for data from PostgreSQL. 0 disables this timeout.</small>
+          </label>
+          <label>
+            SSL root certificate path (sslrootcert)
+            <input
+              name="sslrootcert"
+              value={form.sslrootcert}
+              onChange={onChange}
+              maxLength={2048}
+              placeholder="e.g. /opt/etl/certs/root.crt"
+            />
+            <small>
+              Optional CA certificate on the Java service host for SSL verification. Leave blank to
+              use the driver’s default certificate location.
+            </small>
+          </label>
+        </div>
+      </details>
       <label className="config-create-database">
         <span>
           <input

@@ -16,6 +16,10 @@ public class PostgresConnectionHandler implements ConnectionTypeHandler {
         "database",
         "username",
         "sslMode",
+        "currentSchema",
+        "connectTimeout",
+        "socketTimeout",
+        "sslrootcert",
         "createDatabaseIfNotExists"
     );
     private final PostgresConnectionFactory connections;
@@ -70,6 +74,21 @@ public class PostgresConnectionHandler implements ConnectionTypeHandler {
             "Invalid create database option."
         );
         normalized.put("createDatabaseIfNotExists", create);
+        timeout(normalized, "connectTimeout", "5");
+        timeout(normalized, "socketTimeout", "10");
+        for (String key : new String[] { "currentSchema", "sslrootcert" }) {
+            String value = settings.get(key);
+            if (value == null || value.isBlank()) normalized.remove(key);
+            else {
+                if (
+                    value.length() > 2048 || value.indexOf('\0') >= 0
+                ) throw new InvalidConnectionException(
+                    key + " must have up to 2048 characters without null characters."
+                );
+                // Keep quoted schema names and certificate paths exactly as supplied.
+                normalized.put(key, value);
+            }
+        }
         return normalized;
     }
 
@@ -130,5 +149,19 @@ public class PostgresConnectionHandler implements ConnectionTypeHandler {
 
     private static void require(String value, String pattern, String message) {
         if (value == null || !value.matches(pattern)) throw new InvalidConnectionException(message);
+    }
+
+    private static void timeout(Map<String, String> settings, String key, String fallback) {
+        String value = settings.get(key);
+        if (value == null || value.isBlank()) value = fallback;
+        try {
+            int seconds = Integer.parseInt(value);
+            if (seconds < 0 || seconds > 2147484) throw new NumberFormatException();
+            settings.put(key, Integer.toString(seconds));
+        } catch (NumberFormatException e) {
+            throw new InvalidConnectionException(
+                key + " must be a whole number from 0 to 2147484 seconds. 0 disables the timeout."
+            );
+        }
     }
 }

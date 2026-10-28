@@ -15,7 +15,22 @@ export const connectionFilters = {
     search('type', 'Connector type', (item) => item.type),
     search('host', 'Host', (item) => item.host),
     search('database', 'Database', (item) => item.database),
+    search('schema', 'Default schema / search path', (item) => item.currentSchema),
     search('username', 'Username', (item) => item.username),
+    search('directories', 'File directories', (item) => [
+      item.directoryName,
+      item.move,
+      item.moveFailed,
+      item.preMove,
+    ]),
+    search('fileFilters', 'File filters and encoding', (item) => [
+      item.fileName,
+      item.include,
+      item.exclude,
+      item.includeExt,
+      item.excludeExt,
+      item.charset,
+    ]),
   ],
   facets: [facet('type', 'Connector type', (item) => item.type)],
 }

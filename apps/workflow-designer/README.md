@@ -8,7 +8,7 @@ npm run dev
 ```
 
 `npm run build` creates the production bundle. `npm run lint` checks the source.
-`npm test` checks Conditional builder serialization/type helpers mapper output-name validation, and transformer port serialization/validation, and saved-item search/date/type filtering.
+`npm test` checks rule builders, mapper/transformer configuration, saved-item filters, and type-specific connector serialization.
 
 Pages live in `src/pages/`; reusable UI such as the sidebar lives in
 `src/components/`. Each component keeps its logic and markup together in a
@@ -29,7 +29,13 @@ Hash navigation supports reloads and browser back/forward without server routing
 configuration. Existing `#configuration` links open Schemas & Tables, and
 `#mappers` links open Dynamic.
 
-Connectors integrates with the Java backend to manage PostgreSQL connections.
+Connectors integrates with the Java backend to manage PostgreSQL and File
+connections. File uses Camel option keys, with source/processed/failed directories
+and advanced filters, polling, and read-lock settings. Test directories performs
+access checks without creating folders or consuming files. PostgreSQL advanced
+settings expose schema/search path, connection and socket timeouts in seconds,
+and an SSL root certificate path. Values are persisted in connector settings
+and used by the Java connection factory.
 Schemas & Tables contains reusable Fields definitions and Tables, including
 field-usage protections, table creation, and reviewed ADD/ALTER/DROP column
 operations. Rules provides a Normalize editor with string/text field selectors,

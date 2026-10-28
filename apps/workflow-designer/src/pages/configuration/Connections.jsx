@@ -8,17 +8,8 @@ import { connectionFilters } from '../../components/items/itemFilterConfigs.js'
 import { useEffect, useState } from 'react'
 import { connectionApi as api } from './connectionApi.js'
 import PostgresFields from './PostgresFields.jsx'
-const defaults = {
-  name: '',
-  type: 'postgres',
-  host: 'localhost',
-  port: '5432',
-  database: '',
-  username: '',
-  password: '',
-  sslMode: 'disable',
-  createDatabaseIfNotExists: false,
-}
+import FileFields from './FileFields.jsx'
+import { newConnection } from './connectionSettings.js'
 export default function Connections() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState(null)
@@ -55,7 +46,7 @@ export default function Connections() {
     }
   }, [])
   function open(item) {
-    setForm(item ? { ...item, password: '' } : { ...defaults })
+    setForm(item ? { ...newConnection(item.type), ...item, password: '' } : newConnection())
     setNotice(null)
     setDeleting(null)
   }
@@ -96,6 +87,11 @@ export default function Connections() {
     }
   }
   function change(event) {
+    if (event.target.name === 'type') {
+      setForm({ ...newConnection(event.target.value), name: form.name })
+      setNotice(null)
+      return
+    }
     setForm({
       ...form,
       [event.target.name]:
@@ -124,7 +120,11 @@ export default function Connections() {
           <header>
             <div>
               <h2>{form.id ? 'Edit connection' : 'New connection'}</h2>
-              <p>Configure PostgreSQL and test your connection.</p>
+              <p>
+                {form.type === 'file'
+                  ? 'Configure Camel File directories and test directory access.'
+                  : 'Configure PostgreSQL and test your connection.'}
+              </p>
             </div>
             <button
               disabled={!!busy}
@@ -153,11 +153,14 @@ export default function Connections() {
                 </label>
                 <label>
                   Connection type
-                  <select name="type" value={form.type} onChange={change}>
+                  <select name="type" value={form.type} onChange={change} disabled={!!form.id}>
                     <option value="postgres">PostgreSQL</option>
+                    <option value="file">File</option>
                   </select>
+                  {form.id && <small>Create a new connector to use a different type.</small>}
                 </label>
                 {form.type === 'postgres' && <PostgresFields form={form} onChange={change} />}
+                {form.type === 'file' && <FileFields form={form} onChange={change} />}
               </div>
               <footer>
                 <small>Saving stores configuration only.</small>
@@ -165,9 +168,11 @@ export default function Connections() {
                   <button type="submit" value="test">
                     {busy === 'test'
                       ? 'Testing…'
-                      : form.createDatabaseIfNotExists
-                        ? 'Create & test'
-                        : 'Test connection'}
+                      : form.type === 'file'
+                        ? 'Test directories'
+                        : form.createDatabaseIfNotExists
+                          ? 'Create & test'
+                          : 'Test connection'}
                   </button>
                   <button className="primary" type="submit" value="save">
                     {busy === 'save' ? 'Saving…' : 'Save connection'}
@@ -204,7 +209,7 @@ export default function Connections() {
               <h3>Your first connection starts here</h3>
               <p>Create a reusable connection for an ETL source or destination.</p>
               <button className="primary" onClick={() => open()}>
-                + Add PostgreSQL connection
+                + Add connection
               </button>
             </div>
           ) : !filtered.items.length ? (
@@ -218,11 +223,23 @@ export default function Connections() {
                 <div className="config-row-info">
                   <h3>{item.name}</h3>
                   <ItemTimestamps item={item} />
-                  <p>
-                    {item.host}:{item.port} / {item.database}
-                  </p>
+                  {item.type === 'file' ? (
+                    <>
+                      <p>
+                        Source: <code>{item.directoryName}</code>
+                      </p>
+                      <p>
+                        Processed: <code>{item.move}</code> · Invalid/failed:{' '}
+                        <code>{item.moveFailed}</code>
+                      </p>
+                    </>
+                  ) : (
+                    <p>
+                      {item.host}:{item.port} / {item.database}
+                    </p>
+                  )}
                 </div>
-                <span className="config-badge">PostgreSQL</span>
+                <span className="config-badge">{item.type === 'file' ? 'File' : 'PostgreSQL'}</span>
                 <button
                   onClick={() => open(item)}
                   disabled={!!busy}

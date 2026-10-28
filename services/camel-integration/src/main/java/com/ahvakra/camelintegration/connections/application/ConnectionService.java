@@ -34,6 +34,9 @@ public class ConnectionService {
 
     public void update(UUID id, ConnectionCommand command) {
         var existing = find(id);
+        if (!existing.type().equals(command.type())) throw new InvalidConnectionException(
+            "A saved connector's type cannot be changed. Create a new connector for a different type."
+        );
         store.save(prepare(id, command, existing.password(), existing.createdAt()));
     }
 

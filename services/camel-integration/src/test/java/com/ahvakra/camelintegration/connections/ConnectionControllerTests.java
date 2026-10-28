@@ -80,6 +80,47 @@ class ConnectionControllerTests {
     }
 
     @Test
+    void persistsAndReturnsAdvancedPostgresSettings() {
+        var original = input("localhost", "secret");
+        var settings = new java.util.HashMap<>(original.settings());
+        settings.put("currentSchema", "analytics,public");
+        settings.put("sslrootcert", "/opt/certs/root.crt");
+        settings.put("connectTimeout", "30");
+        settings.put("socketTimeout", "0");
+        var id = controller
+            .create(
+                new ConnectionRequest(
+                    original.name(),
+                    original.type(),
+                    settings,
+                    original.password()
+                )
+            )
+            .get("id");
+        entities.flush();
+        entities.clear();
+        var saved = controller
+            .list()
+            .stream()
+            .filter(item -> item.id().equals(id))
+            .findFirst()
+            .orElseThrow();
+        assertEquals("analytics,public", saved.settings().get("currentSchema"));
+        assertEquals("/opt/certs/root.crt", saved.settings().get("sslrootcert"));
+        assertEquals("30", saved.settings().get("connectTimeout"));
+        assertEquals("0", saved.settings().get("socketTimeout"));
+        controller.update(id, input("localhost", ""));
+        entities.flush();
+        entities.clear();
+        var updated = store.findById(id).orElseThrow();
+        assertEquals(saved.createdAt(), updated.createdAt());
+        assertEquals("5", updated.settings().get("connectTimeout"));
+        assertEquals("10", updated.settings().get("socketTimeout"));
+        assertFalse(updated.settings().containsKey("currentSchema"));
+        assertEquals("secret", updated.password());
+    }
+
+    @Test
     void keepsUnknownLegacyCreationTimesUnknownAfterEditing() {
         var id = controller.create(input("localhost", "secret")).get("id");
         entities.flush();
