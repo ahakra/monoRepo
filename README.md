@@ -128,6 +128,11 @@ See [the telecom example](examples/telecom/README.md) for the sample CSV, expect
 routing, supported number formats, and configured paths. This is a saved design;
 mapper/transformer and workflow execution are still future work.
 
+Rust source and compiled mapper/transformer modules are available in
+[`wasm/`](wasm/README.md). Use `make wasm-build` to rebuild them or `make wasm-test`
+to run native Rust and compiled WASM tests. They use named inputs/outputs matching
+the telecom definitions; Java/Camel runtime integration remains the next step.
+
 ## Workflow designer preview
 
 Open **Workflows → New workflow** to start a React Flow canvas with a required **Data source** block. Select that block and choose an existing File or PostgreSQL connector in the Properties panel. Move blocks by dragging them. Add a **Next step** placeholder by dragging it from the block library or clicking it, then draw an arrow from the right-hand output dot to another block’s left-hand input dot.

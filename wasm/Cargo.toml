@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["etl-wasm-sdk", "telecom-mapper", "project-cdr", "project-sms", "summarize-usage"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+csv = "1"
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+uuid = { version = "1", default-features = false, features = ["std", "v5"] }
+etl-wasm-sdk = { path = "etl-wasm-sdk" }
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = true
+panic = "abort"

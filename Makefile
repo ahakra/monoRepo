@@ -6,6 +6,8 @@ ENV_PATH := $(if $(filter /%,$(ENV_FILE)),$(ENV_FILE),$(CURDIR)/$(ENV_FILE))
 COMPOSE_FILE := $(ROOT_DIR)docker/compose.postgres.yml
 NPM ?= npm
 MVN ?= ./mvnw
+CARGO ?= cargo
+NODE ?= node
 DOCKER ?= docker
 OLLAMA ?= ollama
 MODEL ?= gemma4:e4b-it-q4_K_M
@@ -14,7 +16,7 @@ OLLAMA_BIND ?= 0.0.0.0:11434
 COMPOSE = $(DOCKER) compose --env-file "$(ENV_PATH)" -f "$(COMPOSE_FILE)"
 WEBUI_COMPOSE = $(DOCKER) compose --env-file "$(ENV_PATH)" -f "$(ROOT_DIR)docker/compose.webui.yml"
 
-.PHONY: help check-env frontend frontend-install backend docker docker-up docker-down docker-logs docker-ps ollama-serve ollama ollama-gemma ollama-qwen webui webui-up webui-down webui-logs webui-ps
+.PHONY: wasm-build wasm-test help check-env frontend frontend-install backend docker docker-up docker-down docker-logs docker-ps ollama-serve ollama ollama-gemma ollama-qwen webui webui-up webui-down webui-logs webui-ps
 
 help:
 	@printf '%s\n' \
@@ -22,6 +24,8 @@ help:
 	  '  make frontend-install  Install frontend dependencies with npm ci' \
 	  '  make frontend          Run the Vite frontend' \
 	  '  make backend           Run the Spring Boot backend' \
+	  '  make wasm-build        Build and package Rust WASM modules' \
+	  '  make wasm-test         Run Rust tests and compiled WASM integration tests' \
 	  '  make docker            Start PostgreSQL and pgAdmin in the background' \
 	  '  make docker-up         Alias for make docker' \
 	  '  make docker-down       Stop Docker services, keeping data volumes' \
@@ -92,3 +96,12 @@ webui-logs: check-env
 
 webui-ps: check-env
 	$(WEBUI_COMPOSE) ps
+
+wasm-build:
+	cd "$(ROOT_DIR)wasm" && $(CARGO) build --locked --workspace --release --target wasm32-unknown-unknown
+	$(NODE) "$(ROOT_DIR)wasm/package.mjs"
+
+wasm-test:
+	cd "$(ROOT_DIR)wasm" && $(CARGO) test --locked --workspace
+	$(MAKE) wasm-build
+	$(NODE) --test "$(ROOT_DIR)wasm/tests/modules.test.mjs"

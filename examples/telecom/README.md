@@ -7,8 +7,10 @@ user data. It skips seeding when the demo workflow already exists, including edi
 to that workflow. All demo entries start with `Telecom -`.
 
 The saved workflow is a design example. The platform does not yet consume files,
-execute WASM mappers/transformers, or write output files. The configured WASM
-filenames are contracts for future modules; those binaries are not provided.
+execute WASM mappers/transformers, or write output files. Rust source and compiled WASM files are now provided for the CSV mapper and
+CDR/SMS projection modules. Run `make wasm-build` to rebuild them; see the
+[WASM contract and build guide](../../wasm/README.md). Java runtime integration
+is the next step.
 Normalize and conditional rules can already be evaluated in their rule editors.
 
 The graph follows this sequence:
