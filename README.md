@@ -17,7 +17,7 @@ Use **Connectors** to create, edit, test, and delete saved connector configurati
 
 Saving a connection stores its configuration. Testing and optional database creation are separate actions. A connection referenced by a table configuration cannot be deleted.
 
-Connectors covers File, FTP/SFTP, SQL, and APIs. File and PostgreSQL connection management are implemented; FTP/SFTP, APIs, and pipeline integration are future work.
+Connectors covers File, FTP/SFTP, SQL, and APIs. File and PostgreSQL connection management are implemented; FTP/SFTP, API connectors, and PostgreSQL pipeline execution remain future work. The Java engine can execute File workflows.
 
 ### File connectors
 
@@ -27,7 +27,7 @@ Choose **Connectors → New connection → File** to configure a local File cons
 - **Processed directory** → `move`, default `.processed`.
 - **Invalid / failed directory** → `moveFailed`, default `.invalid`.
 
-Advanced options include filename/extension/regex filters, recursive polling, character encoding, polling intervals, in-progress moves, and read locks. **Test directories** checks directory access without creating, moving, or consuming files. Saving only stores configuration; workflow consumption is not yet implemented. A business validation failure must eventually fail the Camel exchange to use `moveFailed`.
+Advanced options include filename/extension/regex filters, recursive polling, character encoding, polling intervals, in-progress moves, and read locks. **Test directories** checks directory access without creating, moving, or consuming files. Saving only stores configuration; explicit engine startup begins File consumption. Runtime failures fail the exchange and use `moveFailed`.
 
 Saved connector types cannot be changed; create a new connector to use another type.
 
@@ -86,25 +86,25 @@ Open **Rules** to create, edit, test, and delete Normalize rules. Choose a Field
 
 Conditions support starts with, ends with, contains, equals, and length equals/greater than/less than. Actions support copying, adding/removing a prefix or suffix, replacing text, trimming whitespace, and uppercase/lowercase conversion. Replace string uses literal, case-sensitive find text and replaces every occurrence; an empty replacement removes the find text. Only string/text fields are eligible. The current Fields editor uses `string` for text.
 
-Java evaluates both sample tests and saved-rule application. When the condition matches, the transformed source replaces the destination value; otherwise the whole record stays unchanged. Missing, null, and non-string source values do not match. Saved rules protect their referenced Fields definition and field keys from incompatible edits. Workflow execution integration remains future work.
+Java evaluates both sample tests and saved-rule application. When the condition matches, the transformed source replaces the destination value; otherwise the whole record stays unchanged. Missing, null, and non-string source values do not match. Saved rules protect their referenced Fields definition and field keys from incompatible edits. The Java engine applies these rules to File workflows, fusing consecutive normalization blocks into one ordered per-record pass.
 
 ### Dynamic: Mappers
 
 Open **Dynamic → Mapper** to create, edit, and delete mapper configurations. Each mapper has a name, optional description, a WASM directory, a separate `.wasm` filename, and one or more output lists. Each output list has an exact, case-sensitive name with no spaces or whitespace and selects a saved Fields definition as its type. Names must be unique within the mapper; `CallRecords` and `callRecords` remain distinct.
 
-The editor previews all field keys/types for each output. Saving snapshots those schemas and protects their Fields references from incompatible edits. Re-saving a mapper refreshes its snapshots from the selected definitions. The directory and filename are stored separately without changing them. File loading, WASM execution, and workflow integration are not yet implemented.
+The editor previews all field keys/types for each output. Saving snapshots those schemas and protects their Fields references from incompatible edits. Re-saving a mapper refreshes its snapshots from the selected definitions. The directory and filename are stored separately without changing them. The Java engine loads and validates modules when compiling a File workflow, then executes them through the shared WASM ABI.
 
 ### Dynamic: Transformers
 
-Open **Dynamic → Transformer** to create, edit, and delete named transformer configurations with an optional description, WASM directory, and separate `.wasm` filename. Each transformer has one or more inputs and one or more outputs. Each named port is either a **Fields list** (a list of a selected Fields definition) or a **Dynamic variable** (an untyped named placeholder for future evaluation).
+Open **Dynamic → Transformer** to create, edit, and delete named transformer configurations with an optional description, WASM directory, and separate `.wasm` filename. Each transformer has one or more inputs and one or more outputs. Each named port is either a **Fields list** (a list of a selected Fields definition) or a **Dynamic variable** (a named JSON value at runtime).
 
-Mix both kinds on either side, preview Fields schemas, and add or remove ports. Names are case sensitive and unique within inputs or outputs; an input and output may share a name. List schemas are saved with the configuration and protected from incompatible Fields edits. Dynamic variables do not require a Fields definition. Evaluation and workflow execution will be designed later.
+Mix both kinds on either side, preview Fields schemas, and add or remove ports. Names are case sensitive and unique within inputs or outputs; an input and output may share a name. List schemas are saved with the configuration and protected from incompatible Fields edits. Dynamic variables do not require a Fields definition. The Java engine passes named list and dynamic inputs/outputs through the WASM ABI within each source-file exchange.
 
 ### Conditional rules
 
 Open **Rules → Conditional** to create named rules with an optional description and a Fields definition. All field types are available. Compare a field against a typed value or a compatible field, and nest groups using **AND** (all children) or **OR** (any child). For example: `end_time > start_time AND (status = "completed" OR duration > 60)`.
 
-Operators include equality, inequality, greater/less comparisons, text matching, and null checks as supported by each field type. Java evaluates saved rules and sample records, returning `matched` without changing the record. Dates use ISO dates; datetimes require a timezone offset. Rules protect every field referenced on either side of a comparison. Workflow integration remains future work.
+Operators include equality, inequality, greater/less comparisons, text matching, and null checks as supported by each field type. Java evaluates saved rules and sample records, returning `matched` without changing the record. Dates use ISO dates; datetimes require a timezone offset. Rules protect every field referenced on either side of a comparison. The Java engine uses these predicates for matched/not-matched routing in File workflows.
 
 ### Reviewed column changes
 
@@ -125,19 +125,18 @@ with mixed/CDR/SMS field dictionaries, calling/called normalization rules,
 conditional routing, projection transformer definitions, and separate CDR, SMS,
 and rejected File destinations. Open it from **Workflows** after refreshing the UI.
 See [the telecom example](examples/telecom/README.md) for the sample CSV, expected
-routing, supported number formats, and configured paths. This is a saved design;
-mapper/transformer and workflow execution are still future work.
+routing, supported number formats, and configured paths. Saving keeps it inactive; use the [Java engine API](services/camel-integration/ENGINE.md) to validate and start the File workflow.
 
 Rust source and compiled mapper/transformer modules are available in
 [`wasm/`](wasm/README.md). Use `make wasm-build` to rebuild them or `make wasm-test`
 to run native Rust and compiled WASM tests. They use named inputs/outputs matching
-the telecom definitions; Java/Camel runtime integration remains the next step.
+the telecom definitions. The [Java Camel engine](services/camel-integration/ENGINE.md) executes them in explicitly started File workflows.
 
 ## Workflow designer preview
 
 Open **Workflows → New workflow** to start a React Flow canvas with a required **Data source** block. Select that block and choose an existing File or PostgreSQL connector in the Properties panel. Move blocks by dragging them. Add a **Next step** placeholder by dragging it from the block library or clicking it, then draw an arrow from the right-hand output dot to another block’s left-hand input dot.
 
-The editor includes zoom/pan controls, a minimap, editable labels, selectable/deletable arrows, and guards against cycles, duplicate arrows, and incoming edges to the source. The initial source cannot be deleted. The Mapper block selects a saved mapper and shows one named output handle per defined output list, with its field schema available in Properties. Connect lists independently; different output lists may feed the same target. Sync outputs applies the latest definition, retaining arrows for matching list names and removing arrows for deleted lists. Conditional rule blocks select a saved rule and provide one input with Matched and Not matched outputs. Normalize rule blocks select a saved rule and provide one input and one Output. Properties preview the selected rule and Fields definition. Fixed rule ports retain their arrows when changing the selected definition. Mapper ports display their Fields type, and connections require the same saved Fields definition on both ends. Raw sources feed mapper inputs; rules consume typed outputs. Incompatible existing arrows are highlighted for correction before saving. Transformer blocks select saved definitions and expose every named input and output with its type. Fields lists connect to the same saved Fields definition, and dynamic variables connect only to dynamic variables. Sync ports preserves exact-name arrows and removes arrows for deleted ports. These blocks configure the graph only; workflow rule execution remains future work. Placeholders have no processing behavior.
+The editor includes zoom/pan controls, a minimap, editable labels, selectable/deletable arrows, and guards against cycles, duplicate arrows, and incoming edges to the source. The initial source cannot be deleted. The Mapper block selects a saved mapper and shows one named output handle per defined output list, with its field schema available in Properties. Connect lists independently; different output lists may feed the same target. Sync outputs applies the latest definition, retaining arrows for matching list names and removing arrows for deleted lists. Conditional rule blocks select a saved rule and provide one input with Matched and Not matched outputs. Normalize rule blocks select a saved rule and provide one input and one Output. Properties preview the selected rule and Fields definition. Fixed rule ports retain their arrows when changing the selected definition. Mapper ports display their Fields type, and connections require the same saved Fields definition on both ends. Raw sources feed mapper inputs; rules consume typed outputs. Incompatible existing arrows are highlighted for correction before saving. Transformer blocks select saved definitions and expose every named input and output with its type. Fields lists connect to the same saved Fields definition, and dynamic variables connect only to dynamic variables. Sync ports preserves exact-name arrows and removes arrows for deleted ports. Saving configures the graph; the Java engine API can explicitly execute supported File workflows. Placeholder steps are rejected during execution compilation.
 
 Add a **Data destination** block to select a saved connector that will receive data. It has one input on the left, accepts raw or typed payloads, and has no output.
 
@@ -149,7 +148,7 @@ Connectors, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Tra
 
 Date ranges use the browser's local calendar and include the entire end day. Connector creation time is now recorded for new records. Legacy connectors keep an unknown creation time because their original creation dates were not stored; they remain visible without date filters and are excluded from creation-date ranges. Existing entity timestamps are preserved on edits.
 
-Filtering runs locally over the records already returned by each list API. Workflow drafts are saved locally in the browser and use the same search controls. Executions has no run history yet.
+Filtering runs locally over the records already returned by each list API. Workflow drafts are stored in the platform database and use the same search controls. Executions has no persisted run history yet; the engine API exposes in-memory counters.
 
 ## Repository layout
 
@@ -261,7 +260,7 @@ For the shared Java and frontend formatting tools, run `npm ci` at the repositor
 
 ## Current scope and documentation
 
-Connections, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers have working frontend editors and Java APIs. Pipeline execution is not yet connected to these configurations; the backend currently includes a sample Camel route. The React Flow workflow editor supports browser-local drafts; workflow execution and Executions remain under development. WASM mapper and transformer execution remain future work.
+Connections, Fields, Tables, rules, Mappers, Transformers, and database-backed workflow drafts have working editors and Java APIs. The Java Camel engine executes File workflows with real WASM modules through explicit start/stop APIs. PostgreSQL execution, engine UI controls, streaming/batching, and persisted execution history remain under development.
 
 This implementation targets a trusted local workspace. The API has no authentication, and connection passwords are stored in plaintext in the configuration database. Keep `.env` out of version control and add authentication and secret storage before exposing the service to other users.
 

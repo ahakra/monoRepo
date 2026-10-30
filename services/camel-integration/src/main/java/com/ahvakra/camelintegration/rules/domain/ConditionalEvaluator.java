@@ -21,7 +21,7 @@ public class ConditionalEvaluator {
         return new Result(matches(expression, types, record), record);
     }
 
-    private boolean matches(
+    public boolean matches(
         ConditionalExpression node,
         Map<String, String> types,
         Map<String, Object> record

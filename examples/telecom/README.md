@@ -6,12 +6,15 @@ creates the definitions in one transaction, uses stable IDs, and preserves exist
 user data. It skips seeding when the demo workflow already exists, including edits
 to that workflow. All demo entries start with `Telecom -`.
 
-The saved workflow is a design example. The platform does not yet consume files,
-execute WASM mappers/transformers, or write output files. Rust source and compiled WASM files are now provided for the CSV mapper and
-CDR/SMS projection modules. Run `make wasm-build` to rebuild them; see the
-[WASM contract and build guide](../../wasm/README.md). Java runtime integration
-is the next step.
-Normalize and conditional rules can already be evaluated in their rule editors.
+The saved workflow can now run through the Java Camel engine. Saving alone keeps it
+inactive. Use the [engine lifecycle API](../../services/camel-integration/ENGINE.md)
+to inspect the compiled plan, start consumption, view counters, and stop. A start
+reads real files and moves the input to `.processed` or `.invalid`; use a scratch
+source directory for trials if you want to keep the tracked sample in place.
+
+Rust source and compiled modules are provided for the CSV mapper and CDR/SMS
+projections. Run `make wasm-build` to rebuild them; see the
+[WASM contract and build guide](../../wasm/README.md).
 
 The graph follows this sequence:
 
@@ -21,8 +24,7 @@ The graph follows this sequence:
 3. Match CDR records; send matches through the CDR projection transformer.
 4. Test remaining records against the SMS rule; send matches through the SMS
    projection transformer. Send remaining records to the rejected file destination.
-5. Write projected records to separate CDR/SMS file destinations when a workflow
-   runtime becomes available.
+5. Write projected records to separate CDR/SMS file destinations through the final Camel File producers.
 
 Three field dictionaries cover mixed input, CDR output, and SMS output. They
 include record identifiers, timestamps, original and normalized calling/called

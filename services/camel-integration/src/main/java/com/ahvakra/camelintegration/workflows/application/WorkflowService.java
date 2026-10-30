@@ -3,6 +3,7 @@ package com.ahvakra.camelintegration.workflows.application;
 import com.ahvakra.camelintegration.workflows.domain.*;
 import java.time.Instant;
 import java.util.*;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +16,16 @@ public class WorkflowService {
     private final WorkflowStore store;
     private final WorkflowValidator validator;
 
-    public WorkflowService(WorkflowStore store, WorkflowValidator validator) {
+    private final ObjectProvider<WorkflowExecutionState> executions;
+
+    public WorkflowService(
+        WorkflowStore store,
+        WorkflowValidator validator,
+        ObjectProvider<WorkflowExecutionState> executions
+    ) {
         this.store = store;
         this.validator = validator;
+        this.executions = executions;
     }
 
     @Transactional(readOnly = true)
@@ -64,6 +72,12 @@ public class WorkflowService {
 
     public void delete(UUID id) {
         get(id);
+        if (executions.orderedStream().anyMatch(execution -> execution.isRunning(id))) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Stop the workflow before deleting it."
+            );
+        }
         store.delete(id);
     }
 }

@@ -17,11 +17,15 @@ public class NormalizeEvaluator {
     public Result evaluate(NormalizeSpec spec, Map<String, Object> record) {
         if (record == null) throw new InvalidRuleException("Provide a record to normalize.");
         var output = new LinkedHashMap<>(record);
+        boolean matched = applyInPlace(spec, output);
+        return new Result(matched, output);
+    }
+
+    /** Apply an ordered chain to an engine-owned working record without per-rule copies. */
+    public boolean applyInPlace(NormalizeSpec spec, Map<String, Object> record) {
+        if (record == null) throw new InvalidRuleException("Provide a record to normalize.");
         // Null, missing, or non-string values never match; do not coerce other types.
-        if (!(record.get(spec.sourceField()) instanceof String source)) return new Result(
-            false,
-            output
-        );
+        if (!(record.get(spec.sourceField()) instanceof String source)) return false;
         int length = source.codePointCount(0, source.length());
         boolean matched = switch (spec.condition()) {
             case STARTS_WITH -> source.startsWith(spec.conditionValue());
@@ -32,7 +36,7 @@ public class NormalizeEvaluator {
             case LENGTH_GREATER_THAN -> length > Integer.parseInt(spec.conditionValue());
             case LENGTH_LESS_THAN -> length < Integer.parseInt(spec.conditionValue());
         };
-        if (!matched) return new Result(false, output);
+        if (!matched) return false;
         String value = switch (spec.action()) {
             case COPY -> source;
             case REPLACE -> source.replace(spec.actionValue(), spec.replacementValue());
@@ -48,7 +52,7 @@ public class NormalizeEvaluator {
             case UPPERCASE -> source.toUpperCase(Locale.ROOT);
             case LOWERCASE -> source.toLowerCase(Locale.ROOT);
         };
-        output.put(spec.destinationField(), value);
-        return new Result(true, output);
+        record.put(spec.destinationField(), value);
+        return true;
     }
 }

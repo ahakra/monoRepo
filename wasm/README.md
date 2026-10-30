@@ -2,7 +2,8 @@
 
 This workspace implements the mapper/transformer boundary before the Camel engine.
 It builds real modules at the locations already saved in the telecom demo.
-The Java backend does not load or execute these modules yet.
+The [Java Camel engine](../services/camel-integration/ENGINE.md) loads and executes
+these modules for explicitly started File workflows.
 
 ```sh
 rustup target add wasm32-unknown-unknown
@@ -109,17 +110,17 @@ running a module, rather than infer names from array positions.
    Never free the same allocation twice or pass pointers from another instance.
 4. Reacquire the memory view after a WASM call; memory growth can invalidate prior
    views. Do not invoke one instance concurrently. On a trap, discard the instance
-   and fail that exchange; the future host must also impose memory/fuel limits.
+   and fail that exchange; the Java host imposes memory and instruction limits.
 5. Require exactly the configured output names and validate list schemas/types
    before passing values to downstream blocks. Empty outputs remain named arrays.
 
 [`host.mjs`](host.mjs) demonstrates allocation, packed-result decoding, response
 validation, and cleanup against the actual compiled modules. It is a reference
-for the future Java adapter, not the Camel engine.
+for the Java adapter; `WasmRuntime` implements the same ABI in the Camel engine.
 
-The future engine can use `from(...)` for the source, `to(...)` for intermediate
+The Java engine uses `from(...)` for the source, `to(...)` for intermediate
 processors and the final destination, while passing these named values between
-blocks. Consecutive normalization rules should be compiled into an ordered
+blocks. Consecutive normalization rules are compiled into an ordered
 per-record chain. WASM calls remain explicit batch boundaries; a transformer
 may need multiple named inputs before it can run, so those inputs cannot be
 silently treated as unrelated `to(...)` calls.

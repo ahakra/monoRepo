@@ -213,8 +213,8 @@ the transformed source replaces the destination (which may be the source
 itself). On a non-match the record is unchanged, including an existing
 destination value. Null, absent, or non-string sources never match. The Java
 evaluator copies its input and preserves unrelated fields and null values.
-The UI's sample test calls this same Java evaluator. Rules are not yet attached
-to the workflow designer or automatic Camel execution.
+The UI's sample test calls this same Java evaluator. Explicitly started File
+workflows execute ordered normalization chains through the Java Camel engine.
 
 ## Conditional rules
 
@@ -310,8 +310,8 @@ shows these rule references using the existing `usedBy` response structure.
 
 Tests cover nested logic, both operand kinds, dates/timezones, numeric precision,
 all field types, null handling, invalid configuration, persistence, API errors,
-and field-usage protection. Conditional rules are not yet connected to automatic
-workflow/Camel execution.
+and field-usage protection. Conditional rules partition records into matched and unmatched lists in the Java
+Camel engine.
 
 ## Mappers
 
@@ -350,7 +350,7 @@ Both location components are preserved exactly, and directories may contain spac
 Output list names allow up to 120 characters, must be unique within the mapper,
 and cannot contain spaces, whitespace, or control characters. Names are case
 sensitive and are never trimmed, lowercased, or otherwise normalized: configure
-the exact names the module will emit. There is no runtime module output check yet.
+the exact names the module will emit. The engine validates runtime module output names and Fields types.
 Different outputs may use the same Fields definition. Responses include generated
 `id`, `createdAt`, `updatedAt`, and a `fields` map of keys/types for each output.
 The client chooses a Fields definition as the entire list item type; it does not
@@ -379,9 +379,8 @@ filename, 1–100 inputs, and 1–100 outputs. Every port has an exact name and 
 - `FIELD_LIST`: list items use a selected Fields definition; `fieldDefinitionId` is required.
 - `DYNAMIC_VARIABLE`: named, untyped placeholder; `fieldDefinitionId` must be null/omitted.
 
-There is no transformer evaluator, expression, runtime value, or execution endpoint
-in this iteration. The port name identifies the variable; its evaluation and
-runtime typing will be designed later. Variable-only transformers do not depend
+The Java engine invokes transformer WASM modules with named JSON inputs/outputs.
+Dynamic ports carry JSON values; module business logic determines their shape. Variable-only transformers do not depend
 on any Fields definitions.
 
 Endpoints:
@@ -433,7 +432,8 @@ Filename validation matches Mapper: a `.wasm` extension, no directory separators
 and no control characters. Both components are preserved exactly; spaces in
 file/directory names are allowed. Existing transformer rows receive empty values
 and remain visible; configure their WASM location when editing them. File
-existence checks and module execution remain unimplemented.
+existence checks, manifest validation, and module execution happen when a File
+workflow is explicitly compiled/started.
 
 ## Saved-item timestamps and search
 
@@ -510,8 +510,8 @@ references from being switched to an incompatible type.
 
 Relative move directories resolve from the consumed file's parent. Expressions
 may compute a destination filename. `moveFailed` means failed exchanges, not an
-automatic content-validation rule: future workflow validation must mark the
-exchange failed to use this destination. This form supports a curated subset of
+automatic content-validation rule: engine errors fail the exchange and use this
+destination; records routed to a rejected business branch can still succeed. This form supports a curated subset of
 File consumer options; it does not expose every Camel option or producer options.
 
 **Test directories** checks source and literal move destinations (or their nearest
@@ -598,3 +598,9 @@ Only recognized graph properties are stored; connector credentials/settings and
 React Flow rendering state are discarded. References are design snapshots, not
 foreign keys: deleting or editing a catalog item does not rewrite saved drafts.
 These endpoints only persist drafts; they do not start or execute Camel routes.
+
+## Dynamic workflow engine
+
+See [ENGINE.md](ENGINE.md) for File workflow plan/start/status/stop APIs, WASM ABI
+validation, normalization-chain fusion, lifecycle semantics, bounds, and current
+limitations. Saving a configuration does not start consumption.
