@@ -7,6 +7,7 @@ import {
   transformerPortType,
 } from './workflowModel.js'
 import { RULE_BLOCKS } from './ruleBlocks.js'
+import { stageStates } from './executionResults.js'
 
 export function BlockIcon({ source = false, mapper = false, transformer = false, rule }) {
   return (
@@ -79,6 +80,7 @@ export function TransformerNode({ id, data, selected }) {
         </span>
         <strong>{data.label}</strong>
       </div>
+      <ExecutionBadge data={data} />
       <p>{data.transformerName || 'Choose a transformer'}</p>
       {!data.transformerId ? (
         <span className="workflow-node-status">Needs configuration</span>
@@ -138,6 +140,7 @@ export function RuleNode({ id, type, data, selected }) {
         </span>
         <strong>{data.label}</strong>
       </div>
+      <ExecutionBadge data={data} />
       <p>{data.ruleName || 'Choose a saved rule'}</p>
       <div className="workflow-port-type">
         Type: {data.fieldTypeName || data.fieldDefinitionId || 'Choose a rule'}
@@ -183,6 +186,7 @@ function ConnectorNode({ data, selected, destination = false }) {
         </span>
         <strong>{data.label}</strong>
       </div>
+      <ExecutionBadge data={data} />
       <p>{data.connectorName || 'Choose a connector'}</p>
       <span className={`workflow-node-status ${data.connectorId ? 'is-ready' : ''}`}>
         {data.connectorId
@@ -217,6 +221,7 @@ export function StepNode({ data, selected }) {
         </span>
         <strong>{data.label}</strong>
       </div>
+      <ExecutionBadge data={data} />
       <p>Ready for the next block type</p>
       <Handle type="source" position={Position.Right} id="out" aria-label="Step output" />
     </div>
@@ -247,6 +252,7 @@ export function MapperNode({ id, data, selected }) {
         </span>
         <strong>{data.label}</strong>
       </div>
+      <ExecutionBadge data={data} />
       <p>{data.mapperName || 'Choose a mapper'}</p>
       <div className="workflow-port-type">Input: Raw data</div>
       {!data.outputs.length ? (
@@ -274,5 +280,17 @@ export function MapperNode({ id, data, selected }) {
         </div>
       )}
     </div>
+  )
+}
+
+function ExecutionBadge({ data }) {
+  if (!data.executionState) return null
+  return (
+    <span
+      className={`workflow-result-badge is-${data.executionState}`}
+      title={data.executionMessage || ''}
+    >
+      {stageStates[data.executionState] || data.executionState}
+    </span>
   )
 }

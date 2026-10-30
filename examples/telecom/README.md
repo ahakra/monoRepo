@@ -7,8 +7,9 @@ user data. It skips seeding when the demo workflow already exists, including edi
 to that workflow. All demo entries start with `Telecom -`.
 
 The saved workflow can now run through the Java Camel engine. Saving alone keeps it
-inactive. Use the [engine lifecycle API](../../services/camel-integration/ENGINE.md)
-to inspect the compiled plan, start consumption, view counters, and stop. A start
+inactive. Use **Run** (or **Save and run**) in the editor, then **Stop** to end
+processing. Status and file counters update automatically. The [engine lifecycle API](../../services/camel-integration/ENGINE.md)
+also lets you inspect the compiled plan, start consumption, view counters, and stop. A start
 reads real files and moves the input to `.processed` or `.invalid`; use a scratch
 source directory for trials if you want to keep the tracked sample in place.
 
@@ -69,7 +70,10 @@ Paths are relative to the Java service working directory used by `make backend`:
 `../../examples/telecom/input`, `../../examples/telecom/output/cdr`,
 `../../examples/telecom/output/sms`, and `../../examples/telecom/output/rejected`.
 If you launch the backend from another directory, edit these connectors to use
-absolute paths. The output filenames are `cdr.csv`, `sms.csv`, and `rejected.csv`.
+absolute paths. The destinations derive their names from the input: `usage.csv` produces
+`usage-cdr.csv`, `usage-sms.csv`, and `usage-rejected.csv`. For example,
+`usage copy 3.csv` produces `usage copy 3-cdr.csv` and the corresponding SMS and
+rejected files.
 The input connector uses UTF-8, a changed-file read lock, and `.processed` /
 `.invalid` move directories. No physical database tables or output files are
 created by the seeder.
@@ -82,3 +86,24 @@ saving. Set `app.seed.telecom-demo.enabled=false` to disable the Java startup
 seeder. Historical migration V14 is retained unchanged because it has already
 been applied; its original one-time seed remains part of migration history.
 Disabling the Java seeder does not undo or disable that historical migration.
+
+The editor's **Activity** panel below the canvas shows step/rule events, branch
+counts, durations, failures and actual output paths. **Show step** focuses the
+corresponding block. The current file/step appears above the canvas; fast steps
+remain available in the history. Server traces are also written to
+`services/camel-integration/logs/workflows.log` when launched with `make backend`.
+
+For another trial, stop the workflow, move/delete the old output CSVs, move the
+consumed file from `input/.processed/usage.csv` back into `input/usage.csv`, and
+run again. Fix failed inputs before moving them back from `.invalid`. No files
+are deleted or requeued by the UI. `fixtures/usage.csv` is the canonical sample
+used by the tests and is outside the consumed directory.
+
+Migration V15 replaces only the demo's original fixed destination filenames with
+`${file:onlyname.noext.single}-cdr.csv`, `${file:onlyname.noext.single}-sms.csv`,
+and `${file:onlyname.noext.single}-rejected.csv`. Customized names remain intact.
+Stop and Run after applying the migration to load the changed connectors. Leaving
+a destination's filename blank preserves the exact input filename in its own
+output directory. Reprocessing the same filename still requires moving/removing
+its previous outputs or choosing a unique filename expression; files are not
+overwritten automatically.

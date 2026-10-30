@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { loadModule } from '../host.mjs'
 
 const artifact = (name) => new URL(`../../examples/telecom/wasm/${name}.wasm`, import.meta.url)
-const sample = await readFile(new URL('../../examples/telecom/input/usage.csv', import.meta.url))
+const sample = await readFile(new URL('../../examples/telecom/fixtures/usage.csv', import.meta.url))
 
 test('compiled mapper accepts raw bytes and returns the named, typed usage list', async () => {
   const mapper = await loadModule(artifact('parse-usage'))

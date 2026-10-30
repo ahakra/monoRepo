@@ -4,7 +4,8 @@ import static com.ahvakra.camelintegration.engine.EngineValues.*;
 
 import com.ahvakra.camelintegration.connections.domain.ConnectionDefinition;
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import tools.jackson.databind.JsonNode;
 
 record ExecutionPlan(
@@ -13,7 +14,9 @@ record ExecutionPlan(
     String sourceNode,
     ConnectionDefinition source,
     List<Stage> stages,
-    List<Edge> edges
+    List<Edge> edges,
+    Map<String, String> labels,
+    Map<String, String> nodeTypes
 ) {
     record Edge(String source, String sourceHandle, String target, String targetHandle) {}
 
@@ -24,9 +27,18 @@ record ExecutionPlan(
         List<String> nodes,
         Map<String, Port> inputs,
         Map<String, Port> outputs,
-        Function<Map<String, JsonNode>, Map<String, JsonNode>> operation,
+        BiFunction<Map<String, JsonNode>, Consumer<RuleSummary>, Map<String, JsonNode>> operation,
         ConnectionDefinition destination
     ) {}
+
+    record RuleSummary(String nodeId, String name, long total, long matched) {}
+
+    String label(Stage stage) {
+        String first = labels.getOrDefault(stage.id(), stage.id());
+        return stage.nodes().size() > 1
+            ? first + " (+" + (stage.nodes().size() - 1) + " rules)"
+            : first;
+    }
 
     Map<String, Object> describe() {
         return Map.of(

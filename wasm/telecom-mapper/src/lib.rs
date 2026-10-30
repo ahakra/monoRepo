@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn maps_sample_with_typed_values_and_stable_ids() {
-        let bytes = include_bytes!("../../../examples/telecom/input/usage.csv");
+        let bytes = include_bytes!("../../../examples/telecom/fixtures/usage.csv");
         let first = process(bytes).unwrap();
         assert_eq!(first, process(bytes).unwrap());
         let rows = first["usage"].as_array().unwrap();
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn preserves_decimal_precision_and_accepts_quoted_csv_fields() {
         let sample =
-            std::str::from_utf8(include_bytes!("../../../examples/telecom/input/usage.csv"))
+            std::str::from_utf8(include_bytes!("../../../examples/telecom/fixtures/usage.csv"))
                 .unwrap();
         let sample = sample
             .replacen(",0.25,", ",0.12345678901234567890123456789,", 1)
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn rejects_bad_headers_encoding_and_types_without_partial_output() {
-        let bytes = include_bytes!("../../../examples/telecom/input/usage.csv");
+        let bytes = include_bytes!("../../../examples/telecom/fixtures/usage.csv");
         let sample = std::str::from_utf8(bytes).unwrap();
         for invalid in [
             sample.replacen("datetime,record_id", "datetime,datetime", 1),

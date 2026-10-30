@@ -125,7 +125,7 @@ with mixed/CDR/SMS field dictionaries, calling/called normalization rules,
 conditional routing, projection transformer definitions, and separate CDR, SMS,
 and rejected File destinations. Open it from **Workflows** after refreshing the UI.
 See [the telecom example](examples/telecom/README.md) for the sample CSV, expected
-routing, supported number formats, and configured paths. Saving keeps it inactive; use the [Java engine API](services/camel-integration/ENGINE.md) to validate and start the File workflow.
+routing, supported number formats, and configured paths. Saving keeps it inactive; use **Run** in the editor or the [Java engine API](services/camel-integration/ENGINE.md) to start the File workflow.
 
 Rust source and compiled mapper/transformer modules are available in
 [`wasm/`](wasm/README.md). Use `make wasm-build` to rebuild them or `make wasm-test`
@@ -142,13 +142,15 @@ Add a **Data destination** block to select a saved connector that will receive d
 
 **Save draft** stores the graph, positions, viewport, name/description, and connector references through the Java `/api/workflows` API in the platform database. Reopen, search/filter, update, or delete saved workflows from the list, or **Export JSON** to keep a separate copy. Unsaved changes are not persisted automatically. Existing browser drafts can be imported using **Import browser drafts**; their browser copies are kept and IDs already present on the server are skipped. Invalid drafts must be corrected before import. Server timestamps track creation and updates. Drafts contain connector references and definition snapshots rather than credentials or connector settings. Missing connector references remain editable and can be replaced in Properties. Saving does not start Camel execution.
 
+The editor header includes **Cancel**, **Run / Save and run**, and **Stop**. Cancel prompts before discarding unsaved edits. Save and run saves first and starts only if saving succeeds. Status and completed/failed file counters refresh automatically; engine validation errors are shown in the editor. Closing the editor leaves a running workflow active; Stop ends processing.
+
 ## Searching saved items
 
 Connectors, Fields, Tables, Normalize rules, Conditional rules, Mappers, and Transformers show creation/update timestamps and provide a search/filter toolbar. Search all supported details or choose a specific field, such as name or description where available. Filters combine with search, and include relevant types, creation-date ranges, and sorting by name, creation, or update time. Counts show matching versus total items; Clear filters restores the full list.
 
 Date ranges use the browser's local calendar and include the entire end day. Connector creation time is now recorded for new records. Legacy connectors keep an unknown creation time because their original creation dates were not stored; they remain visible without date filters and are excluded from creation-date ranges. Existing entity timestamps are preserved on edits.
 
-Filtering runs locally over the records already returned by each list API. Workflow drafts are stored in the platform database and use the same search controls. Executions has no persisted run history yet; the engine API exposes in-memory counters.
+Filtering runs locally over the records already returned by each list API. Workflow drafts are stored in the platform database and use the same search controls. Executions shows PostgreSQL-backed batch history, stage results and detailed logs that survive refresh and backend restart. Older batches can be loaded from the database; live route status updates automatically.
 
 ## Repository layout
 
@@ -260,10 +262,25 @@ For the shared Java and frontend formatting tools, run `npm ci` at the repositor
 
 ## Current scope and documentation
 
-Connections, Fields, Tables, rules, Mappers, Transformers, and database-backed workflow drafts have working editors and Java APIs. The Java Camel engine executes File workflows with real WASM modules through explicit start/stop APIs. PostgreSQL execution, engine UI controls, streaming/batching, and persisted execution history remain under development.
+Connections, Fields, Tables, rules, Mappers, Transformers, and database-backed workflow drafts have working editors and Java APIs. The Java Camel engine executes File workflows with real WASM modules through explicit start/stop APIs. PostgreSQL execution, streaming/batching, and persisted execution history remain under development.
 
 This implementation targets a trusted local workspace. The API has no authentication, and connection passwords are stored in plaintext in the configuration database. Keep `.env` out of version control and add authentication and secret storage before exposing the service to other users.
 
 - [Backend APIs, payloads, migrations, and column-change workflow](services/camel-integration/README.md)
 - [Frontend setup and source layout](apps/workflow-designer/README.md)
 - [PostgreSQL and pgAdmin setup](docker/README.md)
+
+Workflow tracing is available through **Activity** in the workflow editor. Review
+per-step events, normalization match counts, branch counts, durations, failures
+and written output paths; select **Show step** to focus a block. Longer server
+traces are kept in `services/camel-integration/logs/workflows.log` by default. See
+[engine tracing and retry instructions](services/camel-integration/ENGINE.md#workflow-tracing-and-retrying-a-file).
+
+Stage results are available both inside the workflow and on **Executions**. Blocks
+show result badges, the inspector shows the selected stage's outcome, and the
+shared table lists stage names/types, status, counts, duration and messages.
+Execution-stage links preserve the selected run/file when opening the workflow.
+
+Activity is grouped into a batch grid in both views: one row per imported file,
+with filename/description, creation time and status. Expand a batch to inspect
+its stages, output files and detailed logs directly under that row.

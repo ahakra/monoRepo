@@ -8,6 +8,7 @@ import SchemasTables from './pages/configuration/SchemasTables.jsx'
 import Dynamic from './pages/dynamic/Dynamic.jsx'
 import Rules from './pages/rules/Rules.jsx'
 import './App.css'
+import { readLocation } from './pageLocation.js'
 
 const Workflows = lazy(() => import('./pages/workflows/Workflows.jsx'))
 
@@ -22,7 +23,7 @@ const pages = {
 }
 
 function readPage() {
-  const hash = window.location.hash.slice(1)
+  const hash = readLocation(window.location.hash).page
   const aliases = { configuration: 'schemas-tables', mappers: 'dynamic' }
   const id = aliases[hash] || hash
   return navigation.some((item) => item.id === id) ? id : 'home'
@@ -30,9 +31,13 @@ function readPage() {
 
 export default function App() {
   const [activePage, setActivePage] = useState(readPage)
+  const [location, setLocation] = useState(() => readLocation(window.location.hash))
 
   useEffect(() => {
-    const updatePage = () => setActivePage(readPage())
+    const updatePage = () => {
+      setActivePage(readPage())
+      setLocation(readLocation(window.location.hash))
+    }
     window.addEventListener('hashchange', updatePage)
     return () => window.removeEventListener('hashchange', updatePage)
   }, [])
@@ -53,7 +58,7 @@ export default function App() {
           </main>
         }
       >
-        <Page />
+        <Page location={location} />
       </Suspense>
     </div>
   )

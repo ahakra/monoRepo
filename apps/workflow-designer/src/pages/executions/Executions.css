@@ -1,1 +1,40 @@
-/* Styles specific to the Executions page belong here. */
+.execution-workflow-picker {
+  display: grid;
+  gap: 8px;
+  max-width: 650px;
+  margin: 20px 0;
+  font-size: 0.85rem;
+}
+.execution-workflow-picker select {
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--surface-input);
+  color: var(--text-primary);
+  font: inherit;
+}
+.execution-overview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.execution-overview h2 {
+  font-size: 1.15rem;
+}
+.execution-overview p {
+  font-size: 0.85rem;
+  margin: 8px 0 0;
+}
+.execution-overview > div:last-child {
+  display: flex;
+  gap: 10px;
+}
+.executions-page .workflow-activity {
+  margin-top: 16px;
+}

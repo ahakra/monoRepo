@@ -87,9 +87,9 @@ export default function FileFields({ form, onChange }) {
         <div className="config-fields">
           {text(
             'fileName',
-            'Filename filter / expression (fileName)',
+            'Exact filename / filename expression (fileName)',
             'e.g. orders.csv',
-            'Optional exact filename or Camel File expression.',
+            'For inputs: exact filename or filename expression, not a regex. Use Include filename regex for patterns. For outputs: ${file:onlyname.noext.single}-cdr.csv keeps the input name; leave blank to preserve its exact filename.',
           )}
           {text(
             'preMove',

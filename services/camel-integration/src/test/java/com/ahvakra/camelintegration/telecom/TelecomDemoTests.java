@@ -54,8 +54,66 @@ class TelecomDemoTests {
     @Autowired
     TelecomDemoSeeder seeder;
 
+    @Autowired
+    javax.sql.DataSource dataSource;
+
+    @Autowired
+    org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     private UUID id(int suffix) {
         return UUID.fromString("ce1e0000-0000-4000-8000-%012d".formatted(suffix));
+    }
+
+    @Test
+    void outputFilenameMigrationUpgradesLegacyDefaultsAndPreservesCustomNames() {
+        jdbc.update(
+            "UPDATE etl_connection_settings SET setting_value = ? WHERE connection_id = ? AND setting_key = 'fileName'",
+            "cdr.csv",
+            id(11)
+        );
+        jdbc.update(
+            "UPDATE etl_connection_settings SET setting_value = ? WHERE connection_id = ? AND setting_key = 'fileName'",
+            "custom-sms.csv",
+            id(12)
+        );
+        jdbc.update(
+            "UPDATE etl_connection_settings SET setting_value = ? WHERE connection_id = ? AND setting_key = 'fileName'",
+            "rejected.csv",
+            id(13)
+        );
+        var connection = org.springframework.jdbc.datasource.DataSourceUtils.getConnection(
+            dataSource
+        );
+        org.springframework.jdbc.datasource.init.ScriptUtils.executeSqlScript(
+            connection,
+            new org.springframework.core.io.ClassPathResource(
+                "db/migration/V15__telecom_output_filenames.sql"
+            )
+        );
+        assertEquals(
+            "${file:onlyname.noext.single}-cdr.csv",
+            jdbc.queryForObject(
+                "SELECT setting_value FROM etl_connection_settings WHERE connection_id = ? AND setting_key = 'fileName'",
+                String.class,
+                id(11)
+            )
+        );
+        assertEquals(
+            "custom-sms.csv",
+            jdbc.queryForObject(
+                "SELECT setting_value FROM etl_connection_settings WHERE connection_id = ? AND setting_key = 'fileName'",
+                String.class,
+                id(12)
+            )
+        );
+        assertEquals(
+            "${file:onlyname.noext.single}-rejected.csv",
+            jdbc.queryForObject(
+                "SELECT setting_value FROM etl_connection_settings WHERE connection_id = ? AND setting_key = 'fileName'",
+                String.class,
+                id(13)
+            )
+        );
     }
 
     @Test
@@ -169,7 +227,7 @@ class TelecomDemoTests {
         var schema = fields.findById(id(1)).orElseThrow().fields();
         var cdr = conditions.findById(id(50)).orElseThrow().spec();
         var sms = conditions.findById(id(51)).orElseThrow().spec();
-        var lines = Files.readAllLines(Path.of("../../examples/telecom/input/usage.csv"));
+        var lines = Files.readAllLines(Path.of("../../examples/telecom/fixtures/usage.csv"));
         var header = lines.getFirst().split(",");
         var actual = new LinkedHashMap<String, String>();
         for (String line : lines.subList(1, lines.size())) {

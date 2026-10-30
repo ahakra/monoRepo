@@ -28,6 +28,9 @@ class DynamicEngineTests {
     WorkflowCompiler compiler;
 
     @Autowired
+    ExecutionHistoryRepository history;
+
+    @Autowired
     WorkflowService workflows;
 
     @Autowired
@@ -89,8 +92,35 @@ class DynamicEngineTests {
         );
     }
 
+    private void editFileSettings(
+        Workflow workflow,
+        String nodeId,
+        java.util.function.Consumer<Map<String, String>> edit
+    ) {
+        var node = java.util.stream.StreamSupport.stream(workflow.nodes().spliterator(), false)
+            .filter(item -> item.path("id").asText().equals(nodeId))
+            .findFirst()
+            .orElseThrow();
+        var connection = connections
+            .findById(UUID.fromString(node.path("data").path("connectorId").asText()))
+            .orElseThrow();
+        var settings = new HashMap<>(connection.settings());
+        edit.accept(settings);
+        connections.save(
+            new ConnectionDefinition(
+                connection.id(),
+                connection.name(),
+                connection.type(),
+                settings,
+                connection.password(),
+                connection.createdAt(),
+                Instant.now()
+            )
+        );
+    }
+
     private String sample() throws Exception {
-        return Files.readString(Path.of("../../examples/telecom/input/usage.csv"));
+        return Files.readString(Path.of("../../examples/telecom/fixtures/usage.csv"));
     }
 
     private void await(BooleanSupplier ready) throws Exception {
@@ -154,20 +184,358 @@ class DynamicEngineTests {
         assertEquals(0, status.failedFiles(), status.lastError());
         assertEquals(1, status.successfulFiles());
         await(() -> Files.exists(temp.resolve("input/.processed/usage.csv")));
-        assertCsv("cdr-file/cdr.csv", Set.of("CALL-001", "CALL-002"), true);
+        assertCsv("cdr-file/usage-cdr.csv", Set.of("CALL-001", "CALL-002"), true);
         assertTrue(
-            Files.readString(temp.resolve("cdr-file/cdr.csv")).contains(
+            Files.readString(temp.resolve("cdr-file/usage-cdr.csv")).contains(
                 "0.12345678901234567890123456789"
             )
         );
-        assertCsv("sms-file/sms.csv", Set.of("SMS-001", "SMS-002"), true);
-        assertCsv("rejected-file/rejected.csv", Set.of("BAD-001", "BAD-002", "BAD-003"), false);
+        assertCsv("sms-file/usage-sms.csv", Set.of("SMS-001", "SMS-002"), true);
+        assertCsv(
+            "rejected-file/usage-rejected.csv",
+            Set.of("BAD-001", "BAD-002", "BAD-003"),
+            false
+        );
         assertThrows(ResponseStatusException.class, () -> engine.start(workflow.id()));
         assertThrows(ResponseStatusException.class, () -> workflows.delete(workflow.id()));
+        assertEquals("WAITING", status.phase());
+        assertNull(status.currentFile());
+        var events = engine.events(workflow.id(), 0, 2000).events();
+        assertTrue(
+            events
+                .stream()
+                .allMatch(
+                    event ->
+                        event.workflowId().equals(workflow.id()) &&
+                        event.runId().equals(status.runId())
+                )
+        );
+        var batchEvents = events
+            .stream()
+            .filter(event -> event.exchangeId() != null)
+            .toList();
+        assertTrue(
+            batchEvents
+                .stream()
+                .allMatch(event -> event.details().get("batchDescription").equals("usage.csv"))
+        );
+        assertTrue(
+            batchEvents.stream().allMatch(event -> event.details().get("sourceType").equals("file"))
+        );
+        assertEquals(
+            1,
+            batchEvents
+                .stream()
+                .map(event -> event.details().get("batchCreatedAt"))
+                .distinct()
+                .count()
+        );
+        assertNotNull(batchEvents.getFirst().details().get("batchCreatedAt"));
+        var rules = events
+            .stream()
+            .filter(event -> event.type().equals("NORMALIZATION_COMPLETED"))
+            .toList();
+        assertEquals(12, rules.size());
+        assertTrue(rules.stream().allMatch(event -> event.stageType().equals("normalizeRule")));
+        var planEvent = events
+            .stream()
+            .filter(event -> event.type().equals("PLAN_READY"))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(
+            workflow.nodes().size(),
+            ((java.util.List<?>) planEvent.details().get("nodes")).size()
+        );
+        assertTrue(
+            events
+                .stream()
+                .anyMatch(
+                    event ->
+                        event.type().equals("STEP_COMPLETED") && event.stageType().equals("mapper")
+                )
+        );
+        assertTrue(
+            events
+                .stream()
+                .anyMatch(
+                    event ->
+                        event.type().equals("STEP_COMPLETED") &&
+                        event.stageType().equals("normalizeChain")
+                )
+        );
+        assertNull(status.currentExchangeId());
+        assertEquals("calling-1", rules.getFirst().nodeId());
+        assertEquals("called-6", rules.getLast().nodeId());
+        assertEquals(6L, ((Number) rules.getFirst().details().get("matched")).longValue());
+        assertEquals(7L, ((Number) rules.getFirst().details().get("total")).longValue());
+        var outputs = events
+            .stream()
+            .filter(event -> event.type().equals("OUTPUT_WRITTEN"))
+            .toList();
+        assertEquals(3, outputs.size());
+        for (var output : outputs) {
+            assertEquals("dataDestination", output.stageType());
+            var path = Path.of(output.details().get("outputPath").toString());
+            assertTrue(path.isAbsolute());
+            assertTrue(Files.exists(path));
+            assertEquals(Files.size(path), ((Number) output.details().get("bytes")).longValue());
+            assertNotNull(output.exchangeId());
+            assertEquals("usage.csv", output.fileName());
+            assertTrue(((Number) output.details().get("durationMs")).longValue() >= 0);
+        }
+        assertTrue(events.stream().anyMatch(event -> event.type().equals("FILE_COMPLETED")));
+        assertTrue(engine.events(UUID.randomUUID(), 0, 2000).events().isEmpty());
         var routeIds = status.stageRouteIds();
         assertFalse(engine.stop(workflow.id()).running());
         for (var route : routeIds) assertNull(camel.getRoute(route));
+        var recreated = new ApacheCamelDynamicEngine(
+            camel,
+            compiler,
+            wasm,
+            new WorkflowTraceStore(history)
+        );
+        var restored = recreated.status(workflow.id());
+        assertFalse(restored.running());
+        assertEquals(status.runId(), restored.runId());
+        assertEquals(1, restored.successfulFiles());
+        assertEquals("STOPPED", restored.phase());
+        assertEquals(status.sourceConfiguration(), restored.sourceConfiguration());
+        var saved = history.batches(workflow.id(), null, 50).items().getFirst();
+        var persisted = history.detail(workflow.id(), saved.executionId());
+        assertEquals("completed", saved.status());
+        assertEquals(
+            12,
+            persisted
+                .stages()
+                .stream()
+                .filter(stage -> "normalizeRule".equals(stage.type()))
+                .count()
+        );
+        assertEquals(
+            3,
+            persisted
+                .stages()
+                .stream()
+                .filter(stage -> stage.outputPath() != null)
+                .count()
+        );
+
         assertFalse(engine.stop(workflow.id()).running());
+    }
+
+    @Test
+    void sameFileCanRunAgainAfterStoppingRemovingOutputsAndMovingInputBack() throws Exception {
+        var workflow = fixture(sample());
+        engine.start(workflow.id());
+        await(() -> engine.status(workflow.id()).successfulFiles() == 1);
+        engine.stop(workflow.id());
+        UUID firstRun = engine.status(workflow.id()).runId();
+        for (String path : List.of(
+            "cdr-file/usage-cdr.csv",
+            "sms-file/usage-sms.csv",
+            "rejected-file/usage-rejected.csv"
+        ))
+            Files.delete(temp.resolve(path));
+        Files.move(temp.resolve("input/.processed/usage.csv"), temp.resolve("input/usage.csv"));
+        engine.start(workflow.id());
+        await(
+            () ->
+                engine.status(workflow.id()).successfulFiles() +
+                    engine.status(workflow.id()).failedFiles() >
+                0
+        );
+        assertEquals(
+            0,
+            engine.status(workflow.id()).failedFiles(),
+            engine.status(workflow.id()).lastError()
+        );
+        assertNotEquals(firstRun, engine.status(workflow.id()).runId());
+        var events = engine.events(workflow.id(), 0, 2000).events();
+        assertEquals(2, events.stream().map(WorkflowTraceStore.Event::runId).distinct().count());
+        assertEquals(
+            6,
+            events
+                .stream()
+                .filter(event -> event.type().equals("OUTPUT_WRITTEN"))
+                .count()
+        );
+        assertCsv("cdr-file/usage-cdr.csv", Set.of("CALL-001", "CALL-002"), true);
+    }
+
+    @Test
+    void emptyBranchesLogSkippedDestinationsInsteadOfCreatingEmptyFiles() throws Exception {
+        var lines = sample().lines().limit(3).toList();
+        var workflow = fixture(String.join("\n", lines) + "\n");
+        engine.start(workflow.id());
+        await(
+            () ->
+                engine.status(workflow.id()).successfulFiles() +
+                    engine.status(workflow.id()).failedFiles() >
+                0
+        );
+        assertEquals(
+            0,
+            engine.status(workflow.id()).failedFiles(),
+            engine.status(workflow.id()).lastError()
+        );
+        var events = engine.events(workflow.id(), 0, 2000).events();
+        assertEquals(
+            2,
+            events
+                .stream()
+                .filter(event -> event.type().equals("STEP_SKIPPED"))
+                .count()
+        );
+        assertFalse(Files.exists(temp.resolve("sms-file/usage-sms.csv")));
+        assertFalse(Files.exists(temp.resolve("rejected-file/usage-rejected.csv")));
+    }
+
+    @Test
+    void stopAndStartLoadsEditedConnectorFiltersInsteadOfReusingOldEndpoints() throws Exception {
+        var workflow = fixture(null);
+        UUID sourceId = null;
+        for (var node : workflow.nodes())
+            if (node.path("type").asText().equals("dataSource")) sourceId = UUID.fromString(
+                node.path("data").path("connectorId").asText()
+            );
+        var source = connections.findById(sourceId).orElseThrow();
+        var original = new HashMap<>(source.settings());
+        original.put("fileName", "first.csv");
+        connections.save(
+            new ConnectionDefinition(
+                source.id(),
+                source.name(),
+                "file",
+                original,
+                "",
+                source.createdAt(),
+                Instant.now()
+            )
+        );
+        Files.writeString(temp.resolve("input/usage copy 2.csv"), sample());
+        engine.start(workflow.id());
+        var firstEndpoint = (org.apache.camel.component.file.FileEndpoint) camel
+            .getRoute("etl-" + workflow.id() + "-source")
+            .getEndpoint();
+        assertEquals("first.csv", firstEndpoint.getFileName().toString());
+        assertEquals(
+            "first.csv",
+            engine.status(workflow.id()).sourceConfiguration().settings().get("fileName")
+        );
+
+        var edited = new HashMap<>(original);
+        edited.remove("fileName");
+        edited.put("include", "^usage.*\\.csv$");
+        Instant updated = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        connections.save(
+            new ConnectionDefinition(
+                source.id(),
+                source.name(),
+                "file",
+                edited,
+                "",
+                source.createdAt(),
+                updated
+            )
+        );
+        assertEquals(
+            "^usage.*\\.csv$",
+            compiler.compile(workflow.id()).source().settings().get("include")
+        );
+        // Saving alone intentionally leaves the active source on its startup snapshot.
+        assertEquals(
+            "first.csv",
+            engine.status(workflow.id()).sourceConfiguration().settings().get("fileName")
+        );
+        assertTrue(Files.exists(temp.resolve("input/usage copy 2.csv")));
+        engine.stop(workflow.id());
+        engine.start(workflow.id());
+        var endpoint = (org.apache.camel.component.file.FileEndpoint) camel
+            .getRoute("etl-" + workflow.id() + "-source")
+            .getEndpoint();
+        assertNull(endpoint.getFileName());
+        assertEquals("^usage.*\\.csv$", endpoint.getInclude());
+        assertFalse(
+            engine.status(workflow.id()).sourceConfiguration().settings().containsKey("fileName")
+        );
+        assertEquals(updated, engine.status(workflow.id()).sourceConfiguration().updatedAt());
+        await(
+            () ->
+                engine.status(workflow.id()).successfulFiles() +
+                    engine.status(workflow.id()).failedFiles() >
+                0
+        );
+        assertEquals(
+            1,
+            engine.status(workflow.id()).successfulFiles(),
+            engine.status(workflow.id()).lastError()
+        );
+    }
+
+    @Test
+    void differentInputFilenamesProduceSeparateCdrSmsAndRejectedFiles() throws Exception {
+        var workflow = fixture(null);
+        editFileSettings(workflow, "source", settings -> {
+            settings.remove("fileName");
+            settings.put("include", "^usage.*\\.csv$");
+            settings.put("preMove", ".inprogress");
+        });
+        for (String filename : List.of("usage copy 3.csv", "usage.2026.10.csv"))
+            Files.writeString(temp.resolve("input").resolve(filename), sample());
+        engine.start(workflow.id());
+        await(
+            () ->
+                engine.status(workflow.id()).successfulFiles() +
+                    engine.status(workflow.id()).failedFiles() >=
+                2
+        );
+        assertEquals(
+            2,
+            engine.status(workflow.id()).successfulFiles(),
+            engine.status(workflow.id()).lastError()
+        );
+        assertEquals(0, engine.status(workflow.id()).failedFiles());
+        for (String base : List.of("usage copy 3", "usage.2026.10")) {
+            assertCsv("cdr-file/" + base + "-cdr.csv", Set.of("CALL-001", "CALL-002"), true);
+            assertCsv("sms-file/" + base + "-sms.csv", Set.of("SMS-001", "SMS-002"), true);
+            assertCsv(
+                "rejected-file/" + base + "-rejected.csv",
+                Set.of("BAD-001", "BAD-002", "BAD-003"),
+                false
+            );
+        }
+        assertFalse(Files.exists(temp.resolve("cdr-file/cdr.csv")));
+        assertEquals(
+            6,
+            engine
+                .events(workflow.id(), 0, 2000)
+                .events()
+                .stream()
+                .filter(event -> event.type().equals("OUTPUT_WRITTEN"))
+                .count()
+        );
+    }
+
+    @Test
+    void destinationsWithoutExplicitFilenamePreserveTheOriginalFilename() throws Exception {
+        var workflow = fixture(sample());
+        for (String id : List.of("cdr-file", "sms-file", "rejected-file"))
+            editFileSettings(workflow, id, settings -> settings.remove("fileName"));
+        engine.start(workflow.id());
+        await(
+            () ->
+                engine.status(workflow.id()).successfulFiles() +
+                    engine.status(workflow.id()).failedFiles() >
+                0
+        );
+        assertEquals(
+            1,
+            engine.status(workflow.id()).successfulFiles(),
+            engine.status(workflow.id()).lastError()
+        );
+        assertCsv("cdr-file/usage.csv", Set.of("CALL-001", "CALL-002"), true);
+        assertCsv("sms-file/usage.csv", Set.of("SMS-001", "SMS-002"), true);
+        assertCsv("rejected-file/usage.csv", Set.of("BAD-001", "BAD-002", "BAD-003"), false);
     }
 
     private void assertCsv(String file, Set<String> expected, boolean normalized) throws Exception {
@@ -195,8 +563,24 @@ class DynamicEngineTests {
         await(() -> Files.exists(temp.resolve("input/.invalid/usage.csv")));
         assertEquals(0, engine.status(workflow.id()).successfulFiles());
         assertTrue(engine.status(workflow.id()).lastError().contains("integer"));
-        assertFalse(Files.exists(temp.resolve("cdr-file/cdr.csv")));
-        assertFalse(Files.exists(temp.resolve("sms-file/sms.csv")));
+        assertFalse(Files.exists(temp.resolve("cdr-file/usage-cdr.csv")));
+        assertFalse(Files.exists(temp.resolve("sms-file/usage-sms.csv")));
+        var events = engine.events(workflow.id(), 0, 2000).events();
+        assertTrue(
+            events
+                .stream()
+                .anyMatch(
+                    event -> event.type().equals("STEP_FAILED") && event.nodeId().equals("parse")
+                )
+        );
+        assertTrue(
+            events
+                .stream()
+                .anyMatch(
+                    event -> event.type().equals("FILE_FAILED") && event.level().equals("ERROR")
+                )
+        );
+        assertFalse(events.stream().anyMatch(event -> event.type().equals("OUTPUT_WRITTEN")));
     }
 
     @Test
@@ -241,6 +625,7 @@ class DynamicEngineTests {
     void rawFilePathCopiesBytesWithLiteralDirectoryNames() throws Exception {
         temp = temp.resolve("literal path & values");
         var workflow = fixture("raw bytes, no mapping\n");
+        editFileSettings(workflow, "cdr-file", settings -> settings.put("fileName", "fixed.csv"));
         var nodes = JSON.createArrayNode();
         for (var node : workflow.nodes())
             if (Set.of("source", "cdr-file").contains(node.path("id").asText())) nodes.add(node);
@@ -272,17 +657,41 @@ class DynamicEngineTests {
             engine.status(workflow.id()).failedFiles(),
             engine.status(workflow.id()).lastError()
         );
-        assertEquals("raw bytes, no mapping\n", Files.readString(temp.resolve("cdr-file/cdr.csv")));
+        assertEquals(
+            "raw bytes, no mapping\n",
+            Files.readString(temp.resolve("cdr-file/fixed.csv"))
+        );
     }
 
     @Test
     void apiStartsStopsAndRejectsIncompletePlans() throws Exception {
-        var controller = new EngineController(engine, compiler, workflows);
+        var controller = new EngineController(engine, compiler, workflows, history);
         var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(
             controller
         ).build();
         var workflow = fixture(null);
         String base = "/api/workflows/" + workflow.id() + "/engine";
+        mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                base + "/batches"
+            )
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()
+        );
+        mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                base + "/batches?limit=0"
+            )
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest()
+        );
+        mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                base + "/batches/" + UUID.randomUUID()
+            )
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound()
+        );
         mvc.perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(base + "/plan")
         ).andExpect(
@@ -307,6 +716,26 @@ class DynamicEngineTests {
             )
         ).andExpect(
             org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isConflict()
+        );
+        mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                base + "/events?after=0&limit=2000"
+            )
+        )
+            .andExpect(
+                org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()
+            )
+            .andExpect(
+                org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath(
+                    "$.events[0].type"
+                ).value("COMPILING")
+            );
+        mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                base + "/events?after=-1"
+            )
+        ).andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest()
         );
         mvc.perform(
             org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(base + "/stop")
@@ -352,11 +781,11 @@ class DynamicEngineTests {
     void existingDestinationIsPreservedAndSourceFails() throws Exception {
         var workflow = fixture(sample());
         Files.createDirectories(temp.resolve("cdr-file"));
-        Files.writeString(temp.resolve("cdr-file/cdr.csv"), "existing data");
+        Files.writeString(temp.resolve("cdr-file/usage-cdr.csv"), "existing data");
         engine.start(workflow.id());
         await(() -> engine.status(workflow.id()).failedFiles() > 0);
         await(() -> Files.exists(temp.resolve("input/.invalid/usage.csv")));
-        assertEquals("existing data", Files.readString(temp.resolve("cdr-file/cdr.csv")));
+        assertEquals("existing data", Files.readString(temp.resolve("cdr-file/usage-cdr.csv")));
         assertEquals(0, engine.status(workflow.id()).successfulFiles());
     }
 

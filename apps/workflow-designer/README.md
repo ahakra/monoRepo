@@ -164,3 +164,16 @@ and removing arrows for deleted or renamed ports. Retained arrows with changed
 types are highlighted for correction before saving. Missing definitions retain
 their saved snapshots for offline editing. No Java backend or WASM execution was
 added; the existing definition APIs are read only.
+
+## Execution monitoring
+
+The workflow editor provides Run/Save and run/Stop and Cancel. Activity below the
+canvas includes a stage-results table, per-file outcomes, output paths and event
+logs. Each block shows a result badge and the inspector includes its latest or
+selected historical result. Executions offers the same activity with workflow,
+run, file, stage, level and text filters. Selecting a stage there opens its block
+and the same file result in the editor. Grouped normalization rules show separate
+match results and explicitly shared timing. Recent activity updates automatically. Batch history, stage snapshots and detailed
+logs are saved in PostgreSQL and survive refresh and backend restart. Load older
+batches to browse earlier executions; filters apply to loaded batches. Unfinished
+batches are marked interrupted after a backend restart. There is no automatic retry.

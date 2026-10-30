@@ -21,6 +21,12 @@ import { conditionalApi } from '../rules/conditionalApi.js'
 import { fieldsApi } from '../configuration/fieldsApi.js'
 import { RULE_BLOCKS } from './ruleBlocks.js'
 import { useWorkflowCatalog } from './useWorkflowCatalog.js'
+import { useWorkflowEngine } from './useWorkflowEngine.js'
+import { useExecutionDetail } from './useExecutionDetail.js'
+import WorkflowSourceSettings from './WorkflowSourceSettings.jsx'
+import WorkflowActivity from './WorkflowActivity.jsx'
+import { stageResults, batchExecutions } from './executionResults.js'
+import { SelectedStageResult } from './StageResults.jsx'
 import {
   DataSourceNode,
   DataDestinationNode,
@@ -79,17 +85,29 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
   const [name, setName] = useState(draft.name)
   const [description, setDescription] = useState(draft.description)
   const [graph, setGraph] = useState({
-    nodes: draft.nodes.map((node) => ({ ...node, selected: node.type === 'dataSource' })),
+    nodes: draft.nodes.map((node) => ({
+      ...node,
+      selected: draft.focusNodeId ? node.id === draft.focusNodeId : node.type === 'dataSource',
+    })),
     edges: draft.edges,
   })
   const [selection, setSelection] = useState({
     kind: 'node',
-    id: draft.nodes.find((node) => node.type === 'dataSource').id,
+    id:
+      draft.nodes.find((node) => node.id === draft.focusNodeId)?.id ||
+      draft.nodes.find((node) => node.type === 'dataSource').id,
   })
   const [dirty, setDirty] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState(null)
+  const [stageLogFilter, setStageLogFilter] = useState('all')
+  const [logRequest, setLogRequest] = useState(0)
+  const [executionView, setExecutionView] = useState({
+    runId: draft.focusRunId || null,
+    exchangeId: draft.focusExchangeId || null,
+    executionId: draft.focusExecutionId || null,
+  })
   const [connectors, setConnectors] = useState([])
   const [connectorState, setConnectorState] = useState({ loading: true, error: '', loaded: false })
   const [reload, setReload] = useState(0)
@@ -98,6 +116,8 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
   const [mapperReload, setMapperReload] = useState(0)
   const [initiallyNew] = useState(isNew)
   const flow = useReactFlow()
+  const engine = useWorkflowEngine(draft.id, !isNew)
+  const busy = saving || engine.busy
   const conditionalRules = useWorkflowCatalog(conditionalApi)
   const normalizeRules = useWorkflowCatalog(rulesApi)
   const fieldDefinitions = useWorkflowCatalog(fieldsApi)
@@ -257,7 +277,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
       viewport: flow.getViewport(),
     })
   }
-  async function save() {
+  async function persistDraft() {
     setSaving(true)
     try {
       const saved = await onSave(currentDraft())
@@ -265,11 +285,17 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
       setDescription(saved.description)
       setSavedAt(saved.updatedAt)
       setDirty(false)
+      return saved
+    } finally {
+      setSaving(false)
+    }
+  }
+  async function save() {
+    try {
+      await persistDraft()
       setNotice({ success: true, message: 'Draft saved to the database.' })
     } catch (error) {
       setNotice({ success: false, message: error.message })
-    } finally {
-      setSaving(false)
     }
   }
   function exportDraft() {
@@ -289,14 +315,16 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
       setNotice({ success: false, message: error.message })
     }
   }
-  function back() {
-    if (
+  function canLeave() {
+    return (
       !dirty ||
       window.confirm(
         'Leave the editor and discard unsaved changes? Save the draft first to keep them.',
       )
     )
-      onBack()
+  }
+  function back() {
+    if (canLeave()) onBack()
   }
   function removeSelection() {
     if (selectedNode && selectedNode.type !== 'dataSource')
@@ -321,7 +349,47 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
     : null
   const sourceConfigured = !!graph.nodes.find((node) => node.type === 'dataSource').data.connectorId
   const invalidEdges = new Set(incompatibleEdges(graph).map((edge) => edge.id))
-  const canvasNodes = graph.nodes.map((node) => {
+  const resultEvents = executionView.runId
+    ? engine.events.filter((event) => event.runId === executionView.runId)
+    : engine.events
+  const selectedBatch = engine.executions?.find((batch) =>
+    executionView.executionId
+      ? batch.executionId === executionView.executionId
+      : batch.runId === executionView.runId && batch.id === executionView.exchangeId,
+  )
+  const latestBatch = engine.executions?.at(-1)
+  const visibleBatch = executionView.runId ? selectedBatch : latestBatch
+  const savedExecution = useExecutionDetail(
+    draft.id,
+    executionView.executionId || visibleBatch?.executionId,
+    visibleBatch?.updatedAt,
+  )
+  const results =
+    savedExecution.detail?.stages ||
+    (executionView.executionId
+      ? []
+      : stageResults(
+          resultEvents,
+          draft,
+          !executionView.runId || executionView.runId === engine.status?.runId
+            ? engine.status
+            : null,
+          executionView.exchangeId,
+        ))
+  const executionStates = new Map(results.map((row) => [row.id, row.status]))
+  const selectedResult = results.find((row) => row.id === selectedNode?.id)
+  const canvasNodes = graph.nodes.map((original) => {
+    const phase = executionStates.get(original.id)
+    const result = results.find((row) => row.id === original.id)
+    const node = {
+      ...original,
+      className: phase ? `workflow-trace-${phase}` : undefined,
+      data: {
+        ...original.data,
+        executionState: result?.status,
+        executionMessage: result?.error || result?.message,
+      },
+    }
     if (['mapper', 'transformer'].includes(node.type))
       return { ...node, data: { ...node.data, fieldDefinitions: fieldDefinitions.items } }
     if (RULE_BLOCKS[node.type])
@@ -347,10 +415,20 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
   return (
     <main className="page config workflow-editor" aria-labelledby="workflow-editor-title">
       <div className="workflow-editor-topline">
-        <button className="workflow-back" disabled={saving} onClick={back}>
+        <button className="workflow-back" disabled={busy} onClick={back}>
           ← Workflows
         </button>
-        <span className="workflow-draft-badge">Design preview · no execution</span>
+        <span
+          className={`workflow-draft-badge ${engine.status?.running ? 'workflow-running' : ''}`}
+        >
+          {engine.status?.running
+            ? 'Running'
+            : engine.loading
+              ? 'Checking status…'
+              : engine.statusError
+                ? 'Status unavailable'
+                : 'Stopped'}
+        </span>
       </div>
       <header className="workflow-editor-header">
         <div>
@@ -369,12 +447,108 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
                     ? 'New draft'
                     : 'Saved to database'}
           </span>
-          <button onClick={exportDraft}>Export JSON</button>
-          <button className="primary" disabled={saving} onClick={save}>
+          <button
+            onClick={() => {
+              if (canLeave())
+                window.location.hash = `executions?workflow=${encodeURIComponent(draft.id)}`
+            }}
+            disabled={isNew || busy}
+          >
+            Executions
+          </button>
+          <button disabled={busy} onClick={back}>
+            Cancel
+          </button>
+          <button
+            onClick={() =>
+              document.getElementById('workflow-activity')?.scrollIntoView({ behavior: 'smooth' })
+            }
+          >
+            Activity
+          </button>
+          <button disabled={busy} onClick={exportDraft}>
+            Export JSON
+          </button>
+          <button className="primary" disabled={busy} onClick={save}>
             Save draft
           </button>
+          {engine.status?.running ? (
+            <button className="danger" disabled={busy} onClick={engine.stop}>
+              {engine.action === 'stop' ? 'Stopping…' : 'Stop'}
+            </button>
+          ) : (
+            <button
+              className="primary"
+              disabled={busy || engine.loading || !!engine.statusError}
+              title="Start watching the source and processing files"
+              onClick={() => {
+                setNotice(null)
+                engine.start(dirty || isNew ? persistDraft : undefined)
+              }}
+            >
+              {engine.action === 'start' ? 'Starting…' : dirty || isNew ? 'Save and run' : 'Run'}
+            </button>
+          )}
         </div>
       </header>
+      <section
+        className="workflow-execution-status"
+        aria-label="Workflow execution"
+        aria-live="polite"
+      >
+        <div>
+          <strong>
+            {engine.status?.running
+              ? engine.status.phase === 'PROCESSING'
+                ? `Processing: ${engine.status.currentStep || 'source file'}`
+                : engine.status.phase === 'STOPPING'
+                  ? 'Stopping…'
+                  : 'Watching the source for files'
+              : engine.loading
+                ? 'Checking execution status…'
+                : engine.statusError
+                  ? 'Execution status unavailable'
+                  : 'Execution stopped'}
+          </strong>
+          {engine.status?.currentFile && <span>File: {engine.status.currentFile}</span>}
+          {engine.status && (
+            <span>
+              {engine.status.successfulFiles} completed · {engine.status.failedFiles} failed
+            </span>
+          )}
+          {engine.status?.running && dirty && (
+            <span>Running the saved version. Stop and run again to apply edits.</span>
+          )}
+          {!engine.status?.running && (
+            <span>
+              Run starts file processing. Cancel closes the editor without saving changes.
+            </span>
+          )}
+          {engine.status?.running && (
+            <span>Closing the editor keeps processing active. Use Stop to end it.</span>
+          )}
+        </div>
+      </section>
+      <WorkflowSourceSettings
+        status={engine.status}
+        savedUpdatedAt={
+          connectors.find((item) => item.id === engine.status?.sourceConfiguration?.connectorId)
+            ?.updatedAt
+        }
+      />
+      {engine.statusError && (
+        <div className="config-notice error" role="status">
+          Could not check execution status: {engine.statusError}
+          <button disabled={busy} onClick={engine.retry}>
+            Retry status
+          </button>
+        </div>
+      )}
+      {(engine.error || engine.status?.lastError) && (
+        <div className="config-notice error" role="status">
+          {engine.error || `Last file error: ${engine.status.lastError}`}
+        </div>
+      )}
       {notice && (
         <div className={`config-notice ${notice.success ? 'success' : 'error'}`} role="status">
           {notice.message}
@@ -386,7 +560,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
           Fields type; dynamic variables connect only to dynamic variables. Correct or remove the
           highlighted arrows before saving.
           <button
-            disabled={saving}
+            disabled={busy}
             onClick={() => {
               setGraph((current) => ({
                 ...current,
@@ -400,7 +574,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
           </button>
         </div>
       )}
-      <div className="workflow-workspace" inert={saving}>
+      <div className="workflow-workspace" inert={busy}>
         <aside className="workflow-palette" aria-label="Block library">
           <div className="workflow-panel-heading">
             <span>BUILD YOUR FLOW</span>
@@ -520,8 +694,12 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
             isValidConnection={isValidConnection}
             defaultEdgeOptions={edgeDefaults}
             defaultViewport={draft.viewport}
-            fitView={initiallyNew}
-            fitViewOptions={{ padding: 0.8, maxZoom: 1 }}
+            fitView={initiallyNew || !!draft.focusNodeId}
+            fitViewOptions={{
+              padding: 0.8,
+              maxZoom: 1,
+              ...(draft.focusNodeId ? { nodes: [{ id: draft.focusNodeId }] } : {}),
+            }}
             minZoom={0.2}
             maxZoom={2}
             snapToGrid
@@ -581,6 +759,31 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
               />
             </label>
           </div>
+          <SelectedStageResult
+            row={selectedResult}
+            onLogs={() => {
+              const batch =
+                savedExecution.detail?.batch ||
+                visibleBatch ||
+                batchExecutions(resultEvents).find(
+                  (item) => item.id === executionView.exchangeId,
+                ) ||
+                batchExecutions(resultEvents).at(-1)
+              setStageLogFilter(selectedNode.id)
+              setLogRequest((value) => value + 1)
+              if (batch)
+                setExecutionView({
+                  runId: batch.runId,
+                  exchangeId: batch.id,
+                  executionId: batch.executionId,
+                })
+              requestAnimationFrame(() =>
+                document
+                  .querySelector('.workflow-batch-details')
+                  ?.scrollIntoView({ behavior: 'smooth' }),
+              )
+            }}
+          />
           <div className="workflow-block-properties">
             {selectedNode ? (
               <>
@@ -654,6 +857,14 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
                             ? connector.directoryName
                             : `${connector.host}:${connector.port} / ${connector.database}`}
                         </dd>
+                        {connector.type === 'file' && selectedNode.type === 'dataDestination' && (
+                          <>
+                            <dt>Output filename</dt>
+                            <dd>
+                              <code>{connector.fileName || 'Original input filename'}</code>
+                            </dd>
+                          </>
+                        )}
                       </dl>
                     )}
                     <div className="workflow-inspector-links">
@@ -800,6 +1011,51 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
           </div>
         </aside>
       </div>
+      {savedExecution.error && (
+        <p className="config-notice error" role="status">
+          Unable to load saved execution: {savedExecution.error}
+        </p>
+      )}
+      {executionView.runId && (
+        <div className="config-notice" role="status">
+          Stage results show the selected execution. The status above is live.
+          <button
+            onClick={() => {
+              setExecutionView({ runId: null, exchangeId: null, executionId: null })
+              setStageLogFilter('all')
+            }}
+          >
+            Show latest results
+          </button>
+        </div>
+      )}
+      <WorkflowActivity
+        key={`${executionView.runId || 'latest'}:${executionView.exchangeId || 'latest'}`}
+        workflow={{
+          ...draft,
+          focusRunId: executionView.runId,
+          focusExchangeId: executionView.exchangeId,
+          focusExecutionId: executionView.executionId,
+        }}
+        stageFilter={stageLogFilter}
+        logRequest={logRequest}
+        onStageFilter={setStageLogFilter}
+        engine={engine}
+        onReveal={(id, context) => {
+          if (context?.runId) setExecutionView(context)
+          const node = graph.nodes.find((item) => item.id === id)
+          if (!node) return
+          setSelection({ kind: 'node', id })
+          setGraph((current) => ({
+            ...current,
+            nodes: current.nodes.map((item) => ({ ...item, selected: item.id === id })),
+          }))
+          flow.fitView({ nodes: [node], maxZoom: 1, duration: 250 })
+          document
+            .querySelector('.workflow-canvas')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }}
+      />
       <div className="workflow-editor-footer">
         <span>
           {sourceConfigured
@@ -807,7 +1063,11 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
             : 'Choose a connector for your Data source'}{' '}
           · Drafts may be saved before configuration is complete.
         </span>
-        <span>Processing and execution will come later.</span>
+        <span>
+          {engine.status?.running
+            ? 'Running · File workflows'
+            : 'File workflow execution available'}
+        </span>
       </div>
     </main>
   )

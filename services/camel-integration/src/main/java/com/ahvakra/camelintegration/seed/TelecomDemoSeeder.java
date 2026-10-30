@@ -83,13 +83,25 @@ public class TelecomDemoSeeder implements ApplicationRunner {
         var cdrFields = seedFields(2, "Telecom - CDR output", cdr, now);
         var smsFields = seedFields(3, "Telecom - SMS output", sms, now);
         var source = seedConnection(10, "Telecom - input CSV", "input", "usage.csv", now);
-        var cdrFile = seedConnection(11, "Telecom - CDR files", "output/cdr", "cdr.csv", now);
-        var smsFile = seedConnection(12, "Telecom - SMS files", "output/sms", "sms.csv", now);
+        var cdrFile = seedConnection(
+            11,
+            "Telecom - CDR files",
+            "output/cdr",
+            "${file:onlyname.noext.single}-cdr.csv",
+            now
+        );
+        var smsFile = seedConnection(
+            12,
+            "Telecom - SMS files",
+            "output/sms",
+            "${file:onlyname.noext.single}-sms.csv",
+            now
+        );
         var rejectedFile = seedConnection(
             13,
             "Telecom - rejected files",
             "output/rejected",
-            "rejected.csv",
+            "${file:onlyname.noext.single}-rejected.csv",
             now
         );
         var mapper = mappers.findById(id(20)).orElseGet(() -> {

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <springProperty scope="context" name="WORKFLOW_LOG_DIR" source="etl.engine.logs-directory" defaultValue="logs"/>
+    <appender name="WORKFLOWS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${WORKFLOW_LOG_DIR}/workflows.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${WORKFLOW_LOG_DIR}/workflows.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder><pattern>%msg%n%ex</pattern></encoder>
+    </appender>
+    <logger name="etl.workflow" level="INFO"><appender-ref ref="WORKFLOWS"/></logger>
+    <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+</configuration>

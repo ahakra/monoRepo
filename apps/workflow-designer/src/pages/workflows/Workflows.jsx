@@ -21,7 +21,7 @@ const filterConfig = {
   ],
 }
 
-export default function Workflows() {
+export default function Workflows({ location }) {
   const [legacy] = useState(() => loadWorkflows())
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -103,14 +103,32 @@ export default function Workflows() {
     (item) => !items.some((saved) => saved.id === item.id),
   ).length
 
-  if (draft)
+  const query = new URLSearchParams(location?.search || '')
+  const requested = items.find((item) => item.id === query.get('workflow'))
+  const opened =
+    draft ||
+    (requested
+      ? {
+          ...requested,
+          focusNodeId: query.get('node'),
+          focusRunId: query.get('run'),
+          focusExchangeId: query.get('file'),
+          focusExecutionId: query.get('batch'),
+        }
+      : null)
+  if (opened)
     return (
-      <ReactFlowProvider key={draft.id}>
+      <ReactFlowProvider
+        key={`${opened.id}:${opened.focusNodeId || ''}:${opened.focusRunId || ''}:${opened.focusExchangeId || ''}:${opened.focusExecutionId || ''}`}
+      >
         <WorkflowEditor
-          draft={draft}
-          isNew={!items.some((item) => item.id === draft.id)}
+          draft={opened}
+          isNew={!items.some((item) => item.id === opened.id)}
           onSave={save}
-          onBack={() => setDraft(null)}
+          onBack={() => {
+            setDraft(null)
+            if (requested) window.location.hash = 'workflows'
+          }}
         />
       </ReactFlowProvider>
     )
@@ -141,7 +159,7 @@ export default function Workflows() {
             in the database.
           </p>
         </div>
-        <span className="workflow-draft-badge">Design preview</span>
+        <span className="workflow-draft-badge">Open editor to run</span>
       </div>
       {(loadError || notice || legacy.error) && (
         <div className="config-notice error" role="status">

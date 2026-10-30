@@ -163,15 +163,26 @@ public class WorkflowCompiler {
                         List.copyOf(chain),
                         Map.of("in", schema),
                         Map.of("out", schema),
-                        input -> {
+                        (input, observe) -> {
                             var output = JSON.createArrayNode();
                             var evaluator = new NormalizeEvaluator();
+                            long[] matched = new long[rules.size()];
                             // One traversal of the record list, applying every rule to one working record.
                             for (var record : input.get("in")) {
                                 var working = EngineValues.record(record);
-                                for (var spec : rules) evaluator.applyInPlace(spec, working);
+                                for (int i = 0; i < rules.size(); i++) {
+                                    if (evaluator.applyInPlace(rules.get(i), working)) matched[i]++;
+                                }
                                 output.add(JSON.valueToTree(working));
                             }
+                            for (int i = 0; i < rules.size(); i++) observe.accept(
+                                new RuleSummary(
+                                    chain.get(i),
+                                    rules.get(i).name(),
+                                    output.size(),
+                                    matched[i]
+                                )
+                            );
                             return Map.of("out", output);
                         },
                         null
@@ -197,7 +208,7 @@ public class WorkflowCompiler {
                         List.of(nodeId),
                         Map.of("in", schema),
                         Map.of("matched", schema, "not-matched", schema),
-                        input -> {
+                        (input, observe) -> {
                             var matched = JSON.createArrayNode();
                             var unmatched = JSON.createArrayNode();
                             var evaluator = new ConditionalEvaluator();
@@ -239,7 +250,7 @@ public class WorkflowCompiler {
                         List.of(nodeId),
                         Map.of("in", Port.raw()),
                         ports,
-                        input ->
+                        (input, observe) ->
                             mapOutputs(
                                 module.invoke(input.get("in").binaryValue(), ports.values()),
                                 ports
@@ -290,7 +301,7 @@ public class WorkflowCompiler {
                         List.of(nodeId),
                         inputs,
                         outputs,
-                        input -> {
+                        (input, observe) -> {
                             var named = JSON.createObjectNode();
                             inputs.forEach((handle, port) ->
                                 named.set(port.name(), input.get(handle))
@@ -377,7 +388,23 @@ public class WorkflowCompiler {
             sourceId,
             connection(source),
             List.copyOf(stages),
-            List.copyOf(edges)
+            List.copyOf(edges),
+            nodes
+                .entrySet()
+                .stream()
+                .collect(
+                    java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, entry ->
+                        entry.getValue().path("data").path("label").asText()
+                    )
+                ),
+            nodes
+                .entrySet()
+                .stream()
+                .collect(
+                    java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, entry ->
+                        entry.getValue().path("type").asText()
+                    )
+                )
         );
     }
 

@@ -41,3 +41,65 @@ test('workflow API uses JSON requests and handles saved documents, deletion, and
     globalThis.fetch = originalFetch
   }
 })
+
+test('engine actions use the lifecycle API and save before starting', async () => {
+  const { workflowEngineApi, runWorkflow } = await import('../src/pages/workflows/workflowsApi.js')
+  const originalFetch = globalThis.fetch
+  const calls = []
+  const status = { workflowId: 'saved', running: true, successfulFiles: 2, failedFiles: 0 }
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, method: options.method })
+    return { ok: true, status: 200, json: async () => status }
+  }
+  try {
+    assert.deepEqual(await workflowEngineApi('saved'), status)
+    assert.deepEqual(calls.pop(), { url: '/api/workflows/saved/engine', method: 'GET' })
+    await workflowEngineApi('saved', 'stop')
+    assert.deepEqual(calls.pop(), { url: '/api/workflows/saved/engine/stop', method: 'POST' })
+    const events = []
+    globalThis.fetch = async (url, options) => {
+      events.push(`request:${url}:${options.method}`)
+      return { ok: true, status: 200, json: async () => status }
+    }
+    await runWorkflow('draft', async () => {
+      events.push('saved')
+      return { id: 'saved' }
+    })
+    assert.deepEqual(events, ['saved', 'request:/api/workflows/saved/engine/start:POST'])
+    events.length = 0
+    await assert.rejects(
+      runWorkflow('draft', async () => {
+        throw new Error('Save failed')
+      }),
+      /Save failed/,
+    )
+    assert.deepEqual(events, [])
+    await runWorkflow('saved')
+    assert.deepEqual(events, ['request:/api/workflows/saved/engine/start:POST'])
+    assert.throws(() => workflowEngineApi('saved', 'delete'), /Unknown workflow action/)
+    globalThis.fetch = async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ detail: 'Connect all transformer inputs' }),
+    })
+    await assert.rejects(runWorkflow('saved'), /Connect all transformer inputs/)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('workflow activity uses a workflow-scoped incremental cursor', async () => {
+  const { workflowEventsApi } = await import('../src/pages/workflows/workflowsApi.js')
+  const originalFetch = globalThis.fetch
+  let requested
+  globalThis.fetch = async (url) => {
+    requested = url
+    return { ok: true, status: 200, json: async () => ({ events: [], nextAfter: 42 }) }
+  }
+  try {
+    assert.equal((await workflowEventsApi('saved', 42)).nextAfter, 42)
+    assert.equal(requested, '/api/workflows/saved/engine/events?after=42&limit=2000')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
