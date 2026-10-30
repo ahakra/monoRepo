@@ -202,6 +202,15 @@ Then run `make backend` and `make frontend` in separate terminals. Both developm
 | `make docker-down` | Stop Docker services while preserving data volumes |
 | `make docker-logs` | Follow Docker service logs |
 | `make docker-ps` | Show Docker service status |
+| `make ollama-serve` | Run Ollama locally, reachable from the WebUI container |
+| `make ollama` or `make ollama-gemma` | Run Gemma (`gemma4:e4b-it-q4_K_M`) locally |
+| `make ollama-qwen` | Run Qwen (`qwen3.5:9b`) locally |
+| `make ollama MODEL=...` | Run another model with local Ollama |
+| `make webui` or `make webui-up` | Start only Open WebUI in Docker |
+| `make webui-down` | Stop WebUI while preserving its data volume |
+| `make webui-logs` / `make webui-ps` | Follow WebUI logs / show status |
+
+See [Ollama and Open WebUI setup](docker/README.md#ollama-and-open-webui) for the local server and WebUI workflow. WebUI opens at http://localhost:3000.
 
 Backend and Docker shortcuts use the root `.env` by default. Select another file with `ENV_FILE`, using a path relative to the repository root or an absolute path:
 

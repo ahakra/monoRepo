@@ -7,10 +7,14 @@ COMPOSE_FILE := $(ROOT_DIR)docker/compose.postgres.yml
 NPM ?= npm
 MVN ?= ./mvnw
 DOCKER ?= docker
+OLLAMA ?= ollama
+MODEL ?= gemma4:e4b-it-q4_K_M
+OLLAMA_BIND ?= 0.0.0.0:11434
 
 COMPOSE = $(DOCKER) compose --env-file "$(ENV_PATH)" -f "$(COMPOSE_FILE)"
+WEBUI_COMPOSE = $(DOCKER) compose --env-file "$(ENV_PATH)" -f "$(ROOT_DIR)docker/compose.webui.yml"
 
-.PHONY: help check-env frontend frontend-install backend docker docker-up docker-down docker-logs docker-ps
+.PHONY: help check-env frontend frontend-install backend docker docker-up docker-down docker-logs docker-ps ollama-serve ollama ollama-gemma ollama-qwen webui webui-up webui-down webui-logs webui-ps
 
 help:
 	@printf '%s\n' \
@@ -23,6 +27,15 @@ help:
 	  '  make docker-down       Stop Docker services, keeping data volumes' \
 	  '  make docker-logs       Follow Docker service logs' \
 	  '  make docker-ps         Show Docker service status' \
+	  '  make ollama-serve      Run the local Ollama server (foreground)' \
+	  '  make ollama            Run Gemma (override with MODEL=...)' \
+	  '  make ollama-gemma      Run gemma4:e4b-it-q4_K_M' \
+	  '  make ollama-qwen       Run qwen3.5:9b' \
+	  '  make webui            Start only Open WebUI in Docker' \
+	  '  make webui-up         Alias for make webui' \
+	  '  make webui-down       Stop WebUI, keeping its data volume' \
+	  '  make webui-logs       Follow WebUI logs' \
+	  '  make webui-ps         Show WebUI status' \
 	  '' \
 	  'Backend and Docker use ENV_FILE=.env by default.' \
 	  'Example: make backend ENV_FILE=.env.local' \
@@ -53,3 +66,29 @@ docker-logs: check-env
 
 docker-ps: check-env
 	$(COMPOSE) ps
+
+ollama-serve:
+	OLLAMA_HOST="$(OLLAMA_BIND)" $(OLLAMA) serve
+
+ollama:
+	$(OLLAMA) run "$(MODEL)"
+
+ollama-gemma:
+	$(OLLAMA) run "gemma4:e4b-it-q4_K_M"
+
+ollama-qwen:
+	$(OLLAMA) run "qwen3.5:9b"
+
+webui: webui-up
+
+webui-up: check-env
+	$(WEBUI_COMPOSE) up -d open-webui
+
+webui-down: check-env
+	$(WEBUI_COMPOSE) down
+
+webui-logs: check-env
+	$(WEBUI_COMPOSE) logs -f open-webui
+
+webui-ps: check-env
+	$(WEBUI_COMPOSE) ps
