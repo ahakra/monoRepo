@@ -118,6 +118,16 @@ For an existing table, **Review column changes** compares its actual PostgreSQL 
 
 To change a used field, first remove it from **every** affected table mapping and save. Then edit the field, add it back to the mapping, save, and review the resulting database changes. To drop a column, remove it from the mapping, save, and select its DROP operation in the review. Renaming a field proposes separate ADD and DROP operations and does not copy existing values to the new column.
 
+## Telecom demo
+
+The Java startup `TelecomDemoSeeder` populates **Telecom - CSV to CDR and SMS**, a file-based workflow
+with mixed/CDR/SMS field dictionaries, calling/called normalization rules,
+conditional routing, projection transformer definitions, and separate CDR, SMS,
+and rejected File destinations. Open it from **Workflows** after refreshing the UI.
+See [the telecom example](examples/telecom/README.md) for the sample CSV, expected
+routing, supported number formats, and configured paths. This is a saved design;
+mapper/transformer and workflow execution are still future work.
+
 ## Workflow designer preview
 
 Open **Workflows → New workflow** to start a React Flow canvas with a required **Data source** block. Select that block and choose an existing File or PostgreSQL connector in the Properties panel. Move blocks by dragging them. Add a **Next step** placeholder by dragging it from the block library or clicking it, then draw an arrow from the right-hand output dot to another block’s left-hand input dot.
