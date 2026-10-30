@@ -571,3 +571,30 @@ See the [pgJDBC connection-property reference](https://jdbc.postgresql.org/docum
 Tests verify validation boundaries, persistence/API round trips, legacy defaults,
 and the exact properties passed to `DriverManager`, including custom schemas,
 certificate paths, configurable timeouts, and disabled timeouts.
+
+
+## Workflow draft API
+
+Flyway migration `V13__workflow_drafts.sql` adds `etl_workflows` for workflow metadata,
+graph snapshots, and viewport state. Restart the Java service to apply it.
+
+| Method | Path | Result |
+| --- | --- | --- |
+| GET | `/api/workflows` | Drafts ordered by latest update |
+| GET | `/api/workflows/{id}` | One draft, or 404 |
+| POST | `/api/workflows` | Create a draft (201); optional client UUID supports browser imports |
+| PUT | `/api/workflows/{id}` | Replace an existing draft; preserve creation timestamp |
+| DELETE | `/api/workflows/{id}` | Delete a draft (204), or 404 |
+
+The request contains `name`, `description`, `nodes`, `edges`, and `viewport`,
+matching the designer's exported `workflow` object. The server sets timestamps.
+Updates may include an `id` matching the URL. Duplicate creation IDs return 409.
+Unconfigured blocks and unavailable saved references are allowed in drafts.
+The API validates block types, positions, port snapshots, endpoints, handles,
+cycles, duplicate arrows, and matching raw/Fields/dynamic types, including
+constraints through placeholder blocks. Limits are 1000 blocks, 5000 arrows,
+and 100 ports per direction. Invalid definitions return 400 with `detail`.
+Only recognized graph properties are stored; connector credentials/settings and
+React Flow rendering state are discarded. References are design snapshots, not
+foreign keys: deleting or editing a catalog item does not rewrite saved drafts.
+These endpoints only persist drafts; they do not start or execute Camel routes.

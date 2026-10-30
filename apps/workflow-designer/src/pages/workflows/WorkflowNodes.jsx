@@ -160,12 +160,22 @@ export function RuleNode({ id, type, data, selected }) {
   )
 }
 
-export function DataSourceNode({ data, selected }) {
+export function DataSourceNode(props) {
+  return <ConnectorNode {...props} />
+}
+
+export function DataDestinationNode(props) {
+  return <ConnectorNode {...props} destination />
+}
+
+function ConnectorNode({ data, selected, destination = false }) {
   return (
-    <div className={`workflow-node workflow-node--source ${selected ? 'is-selected' : ''}`}>
+    <div
+      className={`workflow-node workflow-node--${destination ? 'destination' : 'source'} ${selected ? 'is-selected' : ''}`}
+    >
       <div className="workflow-node-kicker">
-        <span>START</span>
-        <span>Data source</span>
+        <span>{destination ? 'END' : 'START'}</span>
+        <span>{destination ? 'Data destination' : 'Data source'}</span>
       </div>
       <div className="workflow-node-heading">
         <span className="workflow-node-icon">
@@ -183,7 +193,12 @@ export function DataSourceNode({ data, selected }) {
               : data.connectorType
           : 'Needs configuration'}
       </span>
-      <Handle type="source" position={Position.Right} id="out" aria-label="Data source output" />
+      <Handle
+        type={destination ? 'target' : 'source'}
+        position={destination ? Position.Left : Position.Right}
+        id={destination ? 'in' : 'out'}
+        aria-label={destination ? 'Data destination input' : 'Data source output'}
+      />
     </div>
   )
 }

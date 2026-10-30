@@ -25,6 +25,15 @@ export function createWorkflow() {
   }
 }
 
+export function createDataDestination(position) {
+  return {
+    id: crypto.randomUUID(),
+    type: 'dataDestination',
+    position,
+    data: { label: 'Data destination', connectorId: '', connectorName: '', connectorType: '' },
+  }
+}
+
 export function createStep(position) {
   return { id: crypto.randomUUID(), type: 'step', position, data: { label: 'Next step' } }
 }
@@ -135,7 +144,7 @@ export function ruleSelection(rule) {
 }
 
 export function outputPorts(node) {
-  if (!node) return []
+  if (!node || node.type === 'dataDestination') return []
   if (node.type === 'transformer')
     return node.data.outputs.map((port) => ({
       id: transformerHandle('output', port.name),
@@ -173,6 +182,8 @@ function portTypes(nodeId, handle, direction, nodes, edges, visited = new Set())
   const node = nodes.find((item) => item.id === nodeId)
   if (!node) return new Set([''])
   if (node.type === 'dataSource') return new Set(['raw'])
+  // Destinations accept any payload without imposing a Fields type upstream.
+  if (node.type === 'dataDestination') return new Set()
   if (node.type === 'transformer') {
     const port = node.data[direction === 'input' ? 'inputs' : 'outputs'].find(
       (item) => transformerHandle(direction, item.name) === handle,
@@ -325,9 +336,14 @@ export function serializeWorkflow(workflow, { checkTypes = true } = {}) {
   const nodes = workflow.nodes.map((node) => {
     if (
       !node ||
-      !['dataSource', 'step', 'mapper', 'transformer', ...Object.keys(RULE_BLOCKS)].includes(
-        node.type,
-      ) ||
+      ![
+        'dataSource',
+        'dataDestination',
+        'step',
+        'mapper',
+        'transformer',
+        ...Object.keys(RULE_BLOCKS),
+      ].includes(node.type) ||
       typeof node.id !== 'string' ||
       !node.id ||
       ids.has(node.id) ||
@@ -343,7 +359,7 @@ export function serializeWorkflow(workflow, { checkTypes = true } = {}) {
     )
       throw new Error('Each block needs a label of up to 120 characters.')
     const data = { label: node.data.label }
-    if (node.type === 'dataSource') {
+    if (['dataSource', 'dataDestination'].includes(node.type)) {
       for (const key of ['connectorId', 'connectorName', 'connectorType'])
         data[key] = typeof node.data[key] === 'string' ? node.data[key] : ''
     }

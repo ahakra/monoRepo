@@ -23,6 +23,7 @@ import { RULE_BLOCKS } from './ruleBlocks.js'
 import { useWorkflowCatalog } from './useWorkflowCatalog.js'
 import {
   DataSourceNode,
+  DataDestinationNode,
   StepNode,
   MapperNode,
   TransformerNode,
@@ -32,6 +33,7 @@ import {
 import {
   canConnect,
   createStep,
+  createDataDestination,
   createMapper,
   createTransformer,
   applyTransformer,
@@ -48,6 +50,7 @@ import {
 
 const nodeTypes = {
   dataSource: DataSourceNode,
+  dataDestination: DataDestinationNode,
   step: StepNode,
   mapper: MapperNode,
   transformer: TransformerNode,
@@ -55,6 +58,7 @@ const nodeTypes = {
   normalizeRule: RuleNode,
 }
 const blockFactories = {
+  dataDestination: createDataDestination,
   step: createStep,
   mapper: createMapper,
   transformer: createTransformer,
@@ -84,6 +88,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
   })
   const [dirty, setDirty] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState(null)
   const [connectors, setConnectors] = useState([])
   const [connectorState, setConnectorState] = useState({ loading: true, error: '', loaded: false })
@@ -252,16 +257,19 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
       viewport: flow.getViewport(),
     })
   }
-  function save() {
+  async function save() {
+    setSaving(true)
     try {
-      const saved = onSave(currentDraft())
+      const saved = await onSave(currentDraft())
       setName(saved.name)
       setDescription(saved.description)
       setSavedAt(saved.updatedAt)
       setDirty(false)
-      setNotice({ success: true, message: 'Draft saved in this browser.' })
+      setNotice({ success: true, message: 'Draft saved to the database.' })
     } catch (error) {
       setNotice({ success: false, message: error.message })
+    } finally {
+      setSaving(false)
     }
   }
   function exportDraft() {
@@ -308,10 +316,9 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
     selection?.kind === 'node' ? graph.nodes.find((node) => node.id === selection.id) : null
   const selectedEdge =
     selection?.kind === 'edge' ? graph.edges.find((edge) => edge.id === selection.id) : null
-  const connector =
-    selectedNode?.type === 'dataSource'
-      ? connectors.find((item) => item.id === selectedNode.data.connectorId)
-      : null
+  const connector = ['dataSource', 'dataDestination'].includes(selectedNode?.type)
+    ? connectors.find((item) => item.id === selectedNode.data.connectorId)
+    : null
   const sourceConfigured = !!graph.nodes.find((node) => node.type === 'dataSource').data.connectorId
   const invalidEdges = new Set(incompatibleEdges(graph).map((edge) => edge.id))
   const canvasNodes = graph.nodes.map((node) => {
@@ -340,7 +347,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
   return (
     <main className="page config workflow-editor" aria-labelledby="workflow-editor-title">
       <div className="workflow-editor-topline">
-        <button className="workflow-back" onClick={back}>
+        <button className="workflow-back" disabled={saving} onClick={back}>
           ← Workflows
         </button>
         <span className="workflow-draft-badge">Design preview · no execution</span>
@@ -352,10 +359,18 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
         </div>
         <div className="workflow-editor-actions">
           <span className="workflow-save-state" role="status">
-            {dirty ? 'Unsaved changes' : savedAt ? 'Saved locally' : 'Browser draft'}
+            {saving
+              ? 'Saving…'
+              : dirty
+                ? 'Unsaved changes'
+                : savedAt
+                  ? 'Saved to database'
+                  : isNew
+                    ? 'New draft'
+                    : 'Saved to database'}
           </span>
           <button onClick={exportDraft}>Export JSON</button>
-          <button className="primary" onClick={save}>
+          <button className="primary" disabled={saving} onClick={save}>
             Save draft
           </button>
         </div>
@@ -371,6 +386,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
           Fields type; dynamic variables connect only to dynamic variables. Correct or remove the
           highlighted arrows before saving.
           <button
+            disabled={saving}
             onClick={() => {
               setGraph((current) => ({
                 ...current,
@@ -384,7 +400,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
           </button>
         </div>
       )}
-      <div className="workflow-workspace">
+      <div className="workflow-workspace" inert={saving}>
         <aside className="workflow-palette" aria-label="Block library">
           <div className="workflow-panel-heading">
             <span>BUILD YOUR FLOW</span>
@@ -396,6 +412,21 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
             </span>
             <strong>Data source</strong>
             <small>Starting block · already added</small>
+          </button>
+          <button
+            className="workflow-palette-block workflow-palette-block--destination"
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.setData(dragType, 'dataDestination')
+              event.dataTransfer.effectAllowed = 'copy'
+            }}
+            onClick={() => addAtCenter('dataDestination')}
+          >
+            <span className="workflow-node-icon">
+              <BlockIcon source />
+            </span>
+            <strong>Data destination</strong>
+            <small>Saved connector · one input on the left</small>
           </button>
           <button
             className="workflow-palette-block workflow-palette-block--mapper"
@@ -556,11 +587,13 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
                 <h3>
                   {selectedNode.type === 'dataSource'
                     ? 'Data source'
-                    : ['mapper', 'transformer'].includes(selectedNode.type)
-                      ? selectedNode.type === 'mapper'
-                        ? 'Mapper'
-                        : 'Transformer'
-                      : RULE_BLOCKS[selectedNode.type]?.title || 'Next-step placeholder'}
+                    : selectedNode.type === 'dataDestination'
+                      ? 'Data destination'
+                      : ['mapper', 'transformer'].includes(selectedNode.type)
+                        ? selectedNode.type === 'mapper'
+                          ? 'Mapper'
+                          : 'Transformer'
+                        : RULE_BLOCKS[selectedNode.type]?.title || 'Next-step placeholder'}
                 </h3>
                 <label>
                   Block label
@@ -570,7 +603,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
                     onChange={(event) => updateNode(selectedNode.id, { label: event.target.value })}
                   />
                 </label>
-                {selectedNode.type === 'dataSource' ? (
+                {['dataSource', 'dataDestination'].includes(selectedNode.type) ? (
                   <>
                     <label>
                       Connector
@@ -615,7 +648,7 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
                       <dl className="workflow-connector-details">
                         <dt>Type</dt>
                         <dd>{connector.type === 'file' ? 'File' : 'PostgreSQL'}</dd>
-                        <dt>{connector.type === 'file' ? 'Source directory' : 'Database'}</dt>
+                        <dt>{connector.type === 'file' ? 'Directory' : 'Database'}</dt>
                         <dd>
                           {connector.type === 'file'
                             ? connector.directoryName
@@ -636,9 +669,15 @@ export default function WorkflowEditor({ draft, isNew, onSave, onBack }) {
                       <a href="#connectors">Manage connectors ↗</a>
                     </div>
                     <p className="workflow-property-help">
-                      The starting block is required. Its output is the dot on the right. Drag from
-                      it to a step’s input dot.
+                      {selectedNode.type === 'dataDestination'
+                        ? 'Connect a block’s output to the input dot on the left. Choose the connector that will receive the data.'
+                        : 'The starting block is required. Its output is the dot on the right. Drag from it to a step’s input dot.'}
                     </p>
+                    {selectedNode.type === 'dataDestination' && (
+                      <button className="danger" onClick={removeSelection}>
+                        Remove block
+                      </button>
+                    )}
                   </>
                 ) : selectedNode.type === 'mapper' ? (
                   <MapperProperties

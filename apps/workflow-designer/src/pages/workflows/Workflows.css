@@ -231,7 +231,8 @@
   color: var(--text-primary);
   box-shadow: 0 3px 9px #303a350a;
 }
-.workflow-node--source {
+.workflow-node--source,
+.workflow-node--destination {
   border-top-color: var(--accent);
 }
 .config .workflow-palette-block--mapper {
@@ -305,7 +306,8 @@
   font-size: 8px;
   letter-spacing: 0.12em;
 }
-.workflow-node--source .workflow-node-kicker > span:first-child {
+.workflow-node--source .workflow-node-kicker > span:first-child,
+.workflow-node--destination .workflow-node-kicker > span:first-child {
   color: var(--accent);
 }
 .workflow-node-heading {
@@ -345,7 +347,8 @@
   background: var(--blue);
   border: 3px solid var(--surface-input);
 }
-.workflow-node--source .react-flow__handle {
+.workflow-node--source .react-flow__handle,
+.workflow-node--destination .react-flow__handle {
   background: var(--accent);
 }
 .workflow-inspector {

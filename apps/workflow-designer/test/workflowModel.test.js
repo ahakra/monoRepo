@@ -4,6 +4,8 @@ import {
   WORKFLOW_STORAGE_KEY,
   createWorkflow,
   createStep,
+  createDataDestination,
+  inputPorts,
   canConnect,
   removeSteps,
   serializeWorkflow,
@@ -555,4 +557,66 @@ test('type changes invalidate existing arrows, including mapper synchronization 
   assert.equal(loaded.workflows[0].edges.length, 2)
   assert.equal(storage.getItem(WORKFLOW_STORAGE_KEY), raw)
   assert.throws(() => saveWorkflows(loaded.workflows, storage), /incompatible Fields types/)
+})
+
+test('destinations receive raw and typed data but cannot send data or bypass upstream types', () => {
+  const workflow = mapperGraph()
+  const [source, mapper, step] = workflow.nodes
+  const destination = createDataDestination({ x: 1060, y: 180 })
+  workflow.nodes.push(destination)
+  assert.deepEqual(inputPorts(destination), [{ id: 'in', label: '' }])
+  assert.deepEqual(outputPorts(destination), [])
+  for (const connection of [
+    { source: source.id, target: destination.id },
+    { source: mapper.id, sourceHandle: mapperOutputHandle('Customers'), target: destination.id },
+    { source: step.id, target: destination.id },
+  ])
+    assert.equal(canConnect(connection, workflow.nodes, workflow.edges), true)
+  assert.equal(canConnect({ source: destination.id, target: step.id }, workflow.nodes, []), false)
+  assert.equal(
+    canConnect(
+      { source: source.id, target: destination.id, targetHandle: 'out' },
+      workflow.nodes,
+      [],
+    ),
+    false,
+  )
+  const rawInput = { id: 'raw', source: source.id, target: step.id }
+  const terminal = { id: 'terminal', source: step.id, target: destination.id }
+  assert.equal(
+    canConnect(
+      { source: mapper.id, sourceHandle: mapperOutputHandle('Customers'), target: step.id },
+      workflow.nodes,
+      [...workflow.edges, rawInput, terminal],
+    ),
+    false,
+  )
+})
+
+test('destination drafts preserve connector references, strip secrets, and allow removal', () => {
+  const workflow = createWorkflow()
+  const destination = createDataDestination({ x: 420, y: 180 })
+  workflow.nodes.push(destination)
+  assert.equal(serializeWorkflow(workflow).nodes[1].data.connectorId, '')
+  Object.assign(destination.data, {
+    connectorId: 'destination-connector',
+    connectorName: 'Output',
+    connectorType: 'postgres',
+    password: 'secret',
+    settings: { host: 'private-host' },
+  })
+  workflow.edges.push({ id: 'output', source: workflow.nodes[0].id, target: destination.id })
+  const storage = memoryStorage()
+  const saved = saveWorkflows([workflow], storage)
+  assert.deepEqual(loadWorkflows(storage).workflows, saved)
+  assert.deepEqual(saved[0].nodes[1].data, {
+    label: 'Data destination',
+    connectorId: 'destination-connector',
+    connectorName: 'Output',
+    connectorType: 'postgres',
+  })
+  assert.equal(saved[0].edges[0].targetHandle, 'in')
+  const removed = removeSteps(workflow, [destination.id])
+  assert.equal(removed.nodes.length, 1)
+  assert.deepEqual(removed.edges, [])
 })
